@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart } from "lucide-react";
+import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -28,6 +30,29 @@ const personalities: { value: Personality; label: string; icon: React.ReactNode;
   { value: "professional", label: "Professional", icon: <Briefcase className="h-4 w-4" />, description: "Formal and precise" },
   { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" />, description: "Imaginative and bold" },
 ];
+
+const CopyButton = ({ text }: { text: string }) => {
+  const [copied, setCopied] = useState(false);
+  const { toast } = useToast();
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast({ title: "Copied to clipboard" });
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      onClick={handleCopy}
+      className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+    >
+      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+    </Button>
+  );
+};
 
 const ChatbotPage = () => {
   const navigate = useNavigate();
@@ -411,7 +436,81 @@ const ChatbotPage = () => {
                   {msg.type === 'user' ? <User className="h-4 w-4 text-primary-foreground" /> : <Bot className="h-4 w-4 text-primary-foreground" />}
                 </div>
                 <div className={`max-w-[80%] rounded-lg p-4 ${msg.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/80 text-foreground border border-border'}`}>
-                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  {msg.type === 'user' ? (
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                  ) : (
+                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-primary prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          code({ node, inline, className, children, ...props }: any) {
+                            const match = /language-(\w+)/.exec(className || '');
+                            const codeString = String(children).replace(/\n$/, '');
+                            
+                            if (!inline && match) {
+                              return (
+                                <div className="relative group">
+                                  <div className="flex items-center justify-between bg-muted/50 px-3 py-1 rounded-t-md border-b border-border">
+                                    <span className="text-xs text-muted-foreground">{match[1]}</span>
+                                    <CopyButton text={codeString} />
+                                  </div>
+                                  <pre className="!mt-0 !rounded-t-none">
+                                    <code className={className} {...props}>{children}</code>
+                                  </pre>
+                                </div>
+                              );
+                            }
+                            return inline ? (
+                              <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
+                            ) : (
+                              <div className="relative group">
+                                <CopyButton text={codeString} />
+                                <pre><code className={className} {...props}>{children}</code></pre>
+                              </div>
+                            );
+                          },
+                          ul({ children }) {
+                            return <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>;
+                          },
+                          ol({ children }) {
+                            return <ol className="list-decimal pl-4 space-y-1 my-2">{children}</ol>;
+                          },
+                          li({ children }) {
+                            return <li className="text-sm">{children}</li>;
+                          },
+                          h1({ children }) {
+                            return <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>;
+                          },
+                          h2({ children }) {
+                            return <h2 className="text-base font-bold mt-3 mb-2">{children}</h2>;
+                          },
+                          h3({ children }) {
+                            return <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>;
+                          },
+                          p({ children }) {
+                            return <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>;
+                          },
+                          a({ children, href }) {
+                            return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">{children}</a>;
+                          },
+                          blockquote({ children }) {
+                            return <blockquote className="border-l-2 border-primary pl-3 italic text-muted-foreground my-2">{children}</blockquote>;
+                          },
+                          table({ children }) {
+                            return <div className="overflow-x-auto my-2"><table className="min-w-full border border-border rounded">{children}</table></div>;
+                          },
+                          th({ children }) {
+                            return <th className="border border-border px-3 py-1 bg-muted/50 text-left text-sm font-semibold">{children}</th>;
+                          },
+                          td({ children }) {
+                            return <td className="border border-border px-3 py-1 text-sm">{children}</td>;
+                          },
+                        }}
+                      >
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
