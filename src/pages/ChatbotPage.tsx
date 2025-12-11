@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check } from "lucide-react";
+import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw } from "lucide-react";
 import { useAuth } from "@/components/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -341,6 +341,108 @@ const ChatbotPage = () => {
     }
   };
 
+  const handleRegenerate = async (aiMessageIndex: number) => {
+    if (isLoading || !currentConversationId) return;
+    
+    // Find the user message before this AI message
+    const userMessageIndex = aiMessageIndex - 1;
+    if (userMessageIndex < 0 || messages[userMessageIndex]?.type !== 'user') {
+      toast({ title: "Cannot regenerate", description: "No user message found to regenerate from", variant: "destructive" });
+      return;
+    }
+    
+    const userMessageContent = messages[userMessageIndex].content;
+    
+    // Remove the AI response we're regenerating
+    const messagesBeforeAi = messages.slice(0, aiMessageIndex);
+    setMessages(messagesBeforeAi);
+    setIsLoading(true);
+
+    let assistantContent = "";
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const chatMessages = messagesBeforeAi
+        .filter(m => m.id !== 'welcome')
+        .map(m => ({ role: m.type === "user" ? "user" : "assistant", content: m.content }));
+
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: chatMessages, personality }),
+      });
+
+      if (!resp.ok) {
+        const errorData = await resp.json();
+        throw new Error(errorData.error || "Failed to get response");
+      }
+
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      const aiMessageId = crypto.randomUUID();
+
+      const upsertAssistant = (nextChunk: string) => {
+        assistantContent += nextChunk;
+        setMessages(prev => {
+          const existingAiIndex = prev.findIndex(m => m.id === aiMessageId);
+          if (existingAiIndex !== -1) {
+            return prev.map((m, i) => i === existingAiIndex ? { ...m, content: assistantContent } : m);
+          }
+          return [...prev, { id: aiMessageId, type: "ai", content: assistantContent, timestamp: new Date() }];
+        });
+      };
+
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsertAssistant(content);
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Save regenerated AI response
+      if (assistantContent) {
+        await saveMessage(assistantContent, 'assistant');
+      }
+      
+      toast({ title: "Response regenerated" });
+    } catch (error) {
+      console.error("Regenerate error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to regenerate response",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const maxChats = userPlan === "pro" ? "∞" : "15";
 
   return (
@@ -430,85 +532,114 @@ const ChatbotPage = () => {
 
           {/* Messages */}
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex items-start space-x-3 ${msg.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+            {messages.map((msg, index) => (
+              <div key={msg.id} className={`group flex items-start space-x-3 ${msg.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.type === 'user' ? 'bg-primary' : 'bg-gradient-primary'}`}>
                   {msg.type === 'user' ? <User className="h-4 w-4 text-primary-foreground" /> : <Bot className="h-4 w-4 text-primary-foreground" />}
                 </div>
-                <div className={`max-w-[80%] rounded-lg p-4 ${msg.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/80 text-foreground border border-border'}`}>
-                  {msg.type === 'user' ? (
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
-                  ) : (
-                    <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-primary prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          code({ node, inline, className, children, ...props }: any) {
-                            const match = /language-(\w+)/.exec(className || '');
-                            const codeString = String(children).replace(/\n$/, '');
-                            
-                            if (!inline && match) {
-                              return (
-                                <div className="relative group">
-                                  <div className="flex items-center justify-between bg-muted/50 px-3 py-1 rounded-t-md border-b border-border">
-                                    <span className="text-xs text-muted-foreground">{match[1]}</span>
-                                    <CopyButton text={codeString} />
+                <div className="flex flex-col gap-1 max-w-[80%]">
+                  <div className={`rounded-lg p-4 ${msg.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/80 text-foreground border border-border'}`}>
+                    {msg.type === 'user' ? (
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+                    ) : (
+                      <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-code:text-primary prose-pre:bg-background/50 prose-pre:border prose-pre:border-border prose-ul:text-foreground prose-ol:text-foreground prose-li:text-foreground">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            code({ node, inline, className, children, ...props }: any) {
+                              const match = /language-(\w+)/.exec(className || '');
+                              const codeString = String(children).replace(/\n$/, '');
+                              
+                              if (!inline && match) {
+                                return (
+                                  <div className="relative group/code">
+                                    <div className="flex items-center justify-between bg-muted/50 px-3 py-1 rounded-t-md border-b border-border">
+                                      <span className="text-xs text-muted-foreground">{match[1]}</span>
+                                      <CopyButton text={codeString} />
+                                    </div>
+                                    <pre className="!mt-0 !rounded-t-none">
+                                      <code className={className} {...props}>{children}</code>
+                                    </pre>
                                   </div>
-                                  <pre className="!mt-0 !rounded-t-none">
-                                    <code className={className} {...props}>{children}</code>
-                                  </pre>
+                                );
+                              }
+                              return inline ? (
+                                <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
+                              ) : (
+                                <div className="relative group/code">
+                                  <CopyButton text={codeString} />
+                                  <pre><code className={className} {...props}>{children}</code></pre>
                                 </div>
                               );
-                            }
-                            return inline ? (
-                              <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
-                            ) : (
-                              <div className="relative group">
-                                <CopyButton text={codeString} />
-                                <pre><code className={className} {...props}>{children}</code></pre>
-                              </div>
-                            );
-                          },
-                          ul({ children }) {
-                            return <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>;
-                          },
-                          ol({ children }) {
-                            return <ol className="list-decimal pl-4 space-y-1 my-2">{children}</ol>;
-                          },
-                          li({ children }) {
-                            return <li className="text-sm">{children}</li>;
-                          },
-                          h1({ children }) {
-                            return <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>;
-                          },
-                          h2({ children }) {
-                            return <h2 className="text-base font-bold mt-3 mb-2">{children}</h2>;
-                          },
-                          h3({ children }) {
-                            return <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>;
-                          },
-                          p({ children }) {
-                            return <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>;
-                          },
-                          a({ children, href }) {
-                            return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">{children}</a>;
-                          },
-                          blockquote({ children }) {
-                            return <blockquote className="border-l-2 border-primary pl-3 italic text-muted-foreground my-2">{children}</blockquote>;
-                          },
-                          table({ children }) {
-                            return <div className="overflow-x-auto my-2"><table className="min-w-full border border-border rounded">{children}</table></div>;
-                          },
-                          th({ children }) {
-                            return <th className="border border-border px-3 py-1 bg-muted/50 text-left text-sm font-semibold">{children}</th>;
-                          },
-                          td({ children }) {
-                            return <td className="border border-border px-3 py-1 text-sm">{children}</td>;
-                          },
-                        }}
+                            },
+                            ul({ children }) {
+                              return <ul className="list-disc pl-4 space-y-1 my-2">{children}</ul>;
+                            },
+                            ol({ children }) {
+                              return <ol className="list-decimal pl-4 space-y-1 my-2">{children}</ol>;
+                            },
+                            li({ children }) {
+                              return <li className="text-sm">{children}</li>;
+                            },
+                            h1({ children }) {
+                              return <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>;
+                            },
+                            h2({ children }) {
+                              return <h2 className="text-base font-bold mt-3 mb-2">{children}</h2>;
+                            },
+                            h3({ children }) {
+                              return <h3 className="text-sm font-bold mt-2 mb-1">{children}</h3>;
+                            },
+                            p({ children }) {
+                              return <p className="text-sm leading-relaxed mb-2 last:mb-0">{children}</p>;
+                            },
+                            a({ children, href }) {
+                              return <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:no-underline">{children}</a>;
+                            },
+                            blockquote({ children }) {
+                              return <blockquote className="border-l-2 border-primary pl-3 italic text-muted-foreground my-2">{children}</blockquote>;
+                            },
+                            table({ children }) {
+                              return <div className="overflow-x-auto my-2"><table className="min-w-full border border-border rounded">{children}</table></div>;
+                            },
+                            th({ children }) {
+                              return <th className="border border-border px-3 py-1 bg-muted/50 text-left text-sm font-semibold">{children}</th>;
+                            },
+                            td({ children }) {
+                              return <td className="border border-border px-3 py-1 text-sm">{children}</td>;
+                            },
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
+                      </div>
+                    )}
+                  </div>
+                  {/* Action buttons for AI messages */}
+                  {msg.type === 'ai' && msg.id !== 'welcome' && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRegenerate(index)}
+                        disabled={isLoading}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
                       >
-                        {msg.content}
-                      </ReactMarkdown>
+                        <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                        Regenerate
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(msg.content);
+                          toast({ title: "Copied to clipboard" });
+                        }}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <Copy className="h-3 w-3 mr-1" />
+                        Copy
+                      </Button>
                     </div>
                   )}
                 </div>
