@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff } from "lucide-react";
+import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff, Volume2, VolumeX, Download, Lock } from "lucide-react";
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -95,6 +95,8 @@ const ChatbotPage = () => {
   const [personality, setPersonality] = useState<Personality>("friendly");
   const [showSidebar, setShowSidebar] = useState(true);
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -419,6 +421,97 @@ const ChatbotPage = () => {
     recognition.start();
   };
 
+  // Text-to-Speech function (Pro feature)
+  const handleTextToSpeech = (text: string, messageId: string) => {
+    if (userPlan !== 'pro') {
+      toast({
+        title: "Pro Feature",
+        description: "Text-to-speech is available for Pro subscribers only.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!('speechSynthesis' in window)) {
+      toast({
+        title: "Not supported",
+        description: "Text-to-speech is not supported in your browser.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Stop if already speaking this message
+    if (speakingMessageId === messageId && isSpeaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+      return;
+    }
+
+    // Stop any current speech
+    window.speechSynthesis.cancel();
+
+    // Strip markdown for cleaner speech
+    const cleanText = text
+      .replace(/```[\s\S]*?```/g, 'Code block omitted.')
+      .replace(/`[^`]+`/g, '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/#+\s/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      setSpeakingMessageId(messageId);
+    };
+
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+    };
+
+    utterance.onerror = () => {
+      setIsSpeaking(false);
+      setSpeakingMessageId(null);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Export chat function (Pro feature)
+  const handleExportChat = () => {
+    if (userPlan !== 'pro') {
+      toast({
+        title: "Pro Feature",
+        description: "Chat export is available for Pro subscribers only.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const chatContent = messages
+      .filter(m => m.id !== 'welcome')
+      .map(m => `[${m.type.toUpperCase()}] ${m.content}`)
+      .join('\n\n---\n\n');
+
+    const blob = new Blob([chatContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `shadowtalk-chat-${new Date().toISOString().split('T')[0]}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast({ title: "Chat exported successfully" });
+  };
+
   const handleManageSubscription = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('customer-portal');
@@ -613,6 +706,16 @@ const ChatbotPage = () => {
               <Badge className={`${userPlan === "pro" ? "bg-primary text-primary-foreground" : "bg-card border-border"}`}>
                 {userPlan === "pro" ? "⚡ Pro" : "Free"} • {dailyChats}/{maxChats}
               </Badge>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleExportChat}
+                title={userPlan !== 'pro' ? 'Pro feature' : 'Export chat'}
+                className={userPlan !== 'pro' ? 'opacity-50' : ''}
+              >
+                <Download className="h-4 w-4" />
+                {userPlan !== 'pro' && <Lock className="h-3 w-3 ml-1" />}
+              </Button>
               {userPlan === "pro" && (
                 <Button variant="ghost" size="sm" onClick={handleManageSubscription}>
                   <Settings className="h-4 w-4" />
@@ -710,6 +813,24 @@ const ChatbotPage = () => {
                   {/* Action buttons for AI messages */}
                   {msg.type === 'ai' && msg.id !== 'welcome' && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleTextToSpeech(msg.content, msg.id)}
+                        disabled={isLoading}
+                        className={`h-7 px-2 text-xs text-muted-foreground hover:text-foreground ${
+                          userPlan !== 'pro' ? 'opacity-50' : ''
+                        }`}
+                        title={userPlan !== 'pro' ? 'Pro feature' : speakingMessageId === msg.id ? 'Stop speaking' : 'Read aloud'}
+                      >
+                        {speakingMessageId === msg.id && isSpeaking ? (
+                          <VolumeX className="h-3 w-3 mr-1" />
+                        ) : (
+                          <Volume2 className="h-3 w-3 mr-1" />
+                        )}
+                        {userPlan !== 'pro' && <Lock className="h-2 w-2 mr-0.5" />}
+                        {speakingMessageId === msg.id && isSpeaking ? 'Stop' : 'Listen'}
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
