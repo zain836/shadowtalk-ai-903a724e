@@ -131,11 +131,15 @@ const CommunitySection = () => {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4 mt-8">
-              <Button className="btn-glow">
-                Join Discord Community
+              <Button className="btn-glow" asChild>
+                <a href="https://discord.gg/shadowtalkai" target="_blank" rel="noopener noreferrer">
+                  Join Discord Community
+                </a>
               </Button>
-              <Button variant="outline">
-                Follow on Twitter
+              <Button variant="outline" asChild>
+                <a href="https://twitter.com/shadowtalkai" target="_blank" rel="noopener noreferrer">
+                  Follow on Twitter
+                </a>
               </Button>
             </div>
           </div>
