@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff, Volume2, VolumeX, Download, Lock } from "lucide-react";
+import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff, Volume2, VolumeX, Download, Lock, Square, Edit2, Image as ImageIcon, Code } from "lucide-react";
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -45,10 +45,22 @@ import {
 } from "@/components/ui/select";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { FileUpload } from "@/components/chat/FileUpload";
+import { SuggestedPrompts } from "@/components/chat/SuggestedPrompts";
+import { CodeCanvas } from "@/components/chat/CodeCanvas";
+import { ImageGenerator } from "@/components/chat/ImageGenerator";
+import { EditMessageDialog } from "@/components/chat/EditMessageDialog";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
-type Message = { id: string; type: "user" | "ai"; content: string; timestamp: Date };
+type MessageContent = string | { type: string; text?: string; image_url?: { url: string } }[];
+type Message = { 
+  id: string; 
+  type: "user" | "ai"; 
+  content: string; 
+  timestamp: Date;
+  attachment?: { type: 'image' | 'file'; data: string; name: string; mimeType: string };
+};
 type Conversation = { id: string; title: string; created_at: string };
 type Personality = "friendly" | "sarcastic" | "professional" | "creative";
 
@@ -97,6 +109,11 @@ const ChatbotPage = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<{ type: 'image' | 'file'; data: string; name: string; mimeType: string } | null>(null);
+  const [showImageGenerator, setShowImageGenerator] = useState(false);
+  const [codeCanvas, setCodeCanvas] = useState<{ code: string; language: string } | null>(null);
+  const [editingMessage, setEditingMessage] = useState<{ index: number; content: string } | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -161,10 +178,10 @@ const ChatbotPage = () => {
 
   const getWelcomeMessage = () => {
     const welcomeMessages: Record<Personality, string> = {
-      friendly: "🔥 Welcome to ShadowTalk AI! I'm powered by advanced AI and ready to help you with anything. What would you like to explore today?",
-      sarcastic: "Oh great, another human who needs my help. 🙄 Just kidding! What earth-shattering problem can I solve for you today?",
-      professional: "Good day. I am your AI assistant, ready to provide accurate and efficient assistance. How may I help you today?",
-      creative: "✨ Greetings, fellow dreamer! I'm here to help turn your wildest ideas into reality. What adventure shall we embark on?"
+      friendly: "🔥 Welcome to ShadowTalk AI! I can understand images, generate creative content, and help you with code. Try uploading an image or use /imagine to create one! What would you like to explore?",
+      sarcastic: "Oh great, another human who needs my help. 🙄 Just kidding! I can analyze images, generate art, and write code. What earth-shattering problem can I solve?",
+      professional: "Good day. I am your AI assistant with multimodal capabilities including image analysis, code assistance, and creative generation. How may I assist you?",
+      creative: "✨ Greetings, fellow dreamer! I can see images, create art with /imagine, and bring code to life. What magical creation shall we craft together?"
     };
     return welcomeMessages[personality];
   };
@@ -246,20 +263,44 @@ const ChatbotPage = () => {
     return data;
   };
 
-  const handleSendMessage = async () => {
-    if (!message.trim() || isLoading || !currentConversationId) return;
+  const stopGeneration = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+      toast({ title: "Generation stopped" });
+    }
+  };
+
+  const handleSendMessage = async (customMessage?: string, customAttachment?: typeof selectedFile) => {
+    const messageToSend = customMessage || message;
+    const attachmentToSend = customAttachment || selectedFile;
     
-    const userMessageContent = message;
+    if ((!messageToSend.trim() && !attachmentToSend) || isLoading || !currentConversationId) return;
+    
+    // Check for /imagine command
+    if (messageToSend.trim().toLowerCase().startsWith('/imagine ')) {
+      setShowImageGenerator(true);
+      setMessage(messageToSend.replace(/^\/imagine\s+/i, ''));
+      return;
+    }
+
+    const userMessageContent = messageToSend;
     const userMessage: Message = { 
       id: crypto.randomUUID(), 
       type: "user", 
       content: userMessageContent, 
-      timestamp: new Date() 
+      timestamp: new Date(),
+      attachment: attachmentToSend || undefined
     };
     setMessages(prev => [...prev, userMessage]);
     setMessage("");
+    setSelectedFile(null);
     setDailyChats(prev => prev + 1);
     setIsLoading(true);
+
+    // Create abort controller for stop functionality
+    abortControllerRef.current = new AbortController();
 
     // Save user message
     await saveMessage(userMessageContent, 'user');
@@ -269,10 +310,28 @@ const ChatbotPage = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Build message content for API
+      const buildMessageContent = (msg: Message): MessageContent => {
+        if (msg.attachment?.type === 'image') {
+          return [
+            { type: "text", text: msg.content || "What's in this image?" },
+            { type: "image_url", image_url: { url: msg.attachment.data } }
+          ];
+        }
+        return msg.content;
+      };
+
       const chatMessages = messages
         .filter(m => m.id !== 'welcome')
-        .map(m => ({ role: m.type === "user" ? "user" : "assistant", content: m.content }));
-      chatMessages.push({ role: "user", content: userMessageContent });
+        .map(m => ({ 
+          role: m.type === "user" ? "user" : "assistant", 
+          content: buildMessageContent(m)
+        }));
+      
+      chatMessages.push({ 
+        role: "user", 
+        content: buildMessageContent(userMessage)
+      });
 
       const resp = await fetch(CHAT_URL, {
         method: "POST",
@@ -281,6 +340,7 @@ const ChatbotPage = () => {
           Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
         body: JSON.stringify({ messages: chatMessages, personality }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!resp.ok) {
@@ -337,6 +397,13 @@ const ChatbotPage = () => {
         await saveMessage(assistantContent, 'assistant');
       }
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        // User stopped generation
+        if (assistantContent) {
+          await saveMessage(assistantContent + "\n\n*[Generation stopped]*", 'assistant');
+        }
+        return;
+      }
       console.error("Chat error:", error);
       toast({
         title: "Error",
@@ -352,7 +419,22 @@ const ChatbotPage = () => {
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const handleEditMessage = async (index: number, newContent: string) => {
+    if (isLoading) return;
+
+    // Remove all messages after this one and resend
+    const messagesBeforeEdit = messages.slice(0, index);
+    const editedMessage = messages[index];
+    
+    setMessages(messagesBeforeEdit);
+    setEditingMessage(null);
+    
+    // Resend with edited content
+    handleSendMessage(newContent, editedMessage.attachment);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -378,13 +460,13 @@ const ChatbotPage = () => {
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = false;
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
     recognition.onstart = () => {
       setIsListening(true);
-      toast({ title: "Listening...", description: "Speak now" });
+      toast({ title: "Listening...", description: "Speak now. Click stop when done." });
     };
 
     recognition.onresult = (event: SpeechRecognitionEvent) => {
@@ -393,10 +475,6 @@ const ChatbotPage = () => {
         .join('');
       
       setMessage(transcript);
-      
-      if (event.results[event.results.length - 1].isFinal) {
-        setIsListening(false);
-      }
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
@@ -536,99 +614,22 @@ const ChatbotPage = () => {
       return;
     }
     
-    const userMessageContent = messages[userMessageIndex].content;
+    const userMessage = messages[userMessageIndex];
     
     // Remove the AI response we're regenerating
     const messagesBeforeAi = messages.slice(0, aiMessageIndex);
     setMessages(messagesBeforeAi);
-    setIsLoading(true);
+    
+    // Resend the user message
+    handleSendMessage(userMessage.content, userMessage.attachment);
+  };
 
-    let assistantContent = "";
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const chatMessages = messagesBeforeAi
-        .filter(m => m.id !== 'welcome')
-        .map(m => ({ role: m.type === "user" ? "user" : "assistant", content: m.content }));
-
-      const resp = await fetch(CHAT_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-        },
-        body: JSON.stringify({ messages: chatMessages, personality }),
-      });
-
-      if (!resp.ok) {
-        const errorData = await resp.json();
-        throw new Error(errorData.error || "Failed to get response");
-      }
-
-      const reader = resp.body?.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      const aiMessageId = crypto.randomUUID();
-
-      const upsertAssistant = (nextChunk: string) => {
-        assistantContent += nextChunk;
-        setMessages(prev => {
-          const existingAiIndex = prev.findIndex(m => m.id === aiMessageId);
-          if (existingAiIndex !== -1) {
-            return prev.map((m, i) => i === existingAiIndex ? { ...m, content: assistantContent } : m);
-          }
-          return [...prev, { id: aiMessageId, type: "ai", content: assistantContent, timestamp: new Date() }];
-        });
-      };
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) upsertAssistant(content);
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
-      }
-
-      // Save regenerated AI response
-      if (assistantContent) {
-        await saveMessage(assistantContent, 'assistant');
-      }
-      
-      toast({ title: "Response regenerated" });
-    } catch (error) {
-      console.error("Regenerate error:", error);
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to regenerate response",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  const handleOpenCodeCanvas = (code: string, language: string) => {
+    setCodeCanvas({ code, language });
   };
 
   const maxChats = userPlan === "pro" ? "∞" : "15";
+  const showSuggestions = messages.length <= 1;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
@@ -727,12 +728,28 @@ const ChatbotPage = () => {
 
           {/* Messages */}
           <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
+            {/* Suggested Prompts */}
+            {showSuggestions && (
+              <SuggestedPrompts 
+                onSelect={(prompt) => setMessage(prompt)} 
+                personality={personality}
+              />
+            )}
+
             {messages.map((msg, index) => (
               <div key={msg.id} className={`group flex items-start space-x-3 ${msg.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${msg.type === 'user' ? 'bg-primary' : 'bg-gradient-primary'}`}>
                   {msg.type === 'user' ? <User className="h-4 w-4 text-primary-foreground" /> : <Bot className="h-4 w-4 text-primary-foreground" />}
                 </div>
                 <div className="flex flex-col gap-1 max-w-[80%]">
+                  {/* Attachment preview for user messages */}
+                  {msg.attachment?.type === 'image' && (
+                    <img 
+                      src={msg.attachment.data} 
+                      alt={msg.attachment.name}
+                      className="max-w-xs rounded-lg border border-border mb-2"
+                    />
+                  )}
                   <div className={`rounded-lg p-4 ${msg.type === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted/80 text-foreground border border-border'}`}>
                     {msg.type === 'user' ? (
                       <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.content}</p>
@@ -750,7 +767,18 @@ const ChatbotPage = () => {
                                   <div className="relative group/code">
                                     <div className="flex items-center justify-between bg-muted/50 px-3 py-1 rounded-t-md border-b border-border">
                                       <span className="text-xs text-muted-foreground">{match[1]}</span>
-                                      <CopyButton text={codeString} />
+                                      <div className="flex gap-1">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleOpenCodeCanvas(codeString, match[1])}
+                                          className="h-6 px-2 text-xs"
+                                        >
+                                          <Code className="h-3 w-3 mr-1" />
+                                          Open
+                                        </Button>
+                                        <CopyButton text={codeString} />
+                                      </div>
                                     </div>
                                     <pre className="!mt-0 !rounded-t-none">
                                       <code className={className} {...props}>{children}</code>
@@ -810,37 +838,53 @@ const ChatbotPage = () => {
                       </div>
                     )}
                   </div>
-                  {/* Action buttons for AI messages */}
-                  {msg.type === 'ai' && msg.id !== 'welcome' && (
+                  {/* Action buttons */}
+                  {msg.id !== 'welcome' && (
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleTextToSpeech(msg.content, msg.id)}
-                        disabled={isLoading}
-                        className={`h-7 px-2 text-xs text-muted-foreground hover:text-foreground ${
-                          userPlan !== 'pro' ? 'opacity-50' : ''
-                        }`}
-                        title={userPlan !== 'pro' ? 'Pro feature' : speakingMessageId === msg.id ? 'Stop speaking' : 'Read aloud'}
-                      >
-                        {speakingMessageId === msg.id && isSpeaking ? (
-                          <VolumeX className="h-3 w-3 mr-1" />
-                        ) : (
-                          <Volume2 className="h-3 w-3 mr-1" />
-                        )}
-                        {userPlan !== 'pro' && <Lock className="h-2 w-2 mr-0.5" />}
-                        {speakingMessageId === msg.id && isSpeaking ? 'Stop' : 'Listen'}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRegenerate(index)}
-                        disabled={isLoading}
-                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                      >
-                        <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
-                        Regenerate
-                      </Button>
+                      {msg.type === 'user' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingMessage({ index, content: msg.content })}
+                          disabled={isLoading}
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                          <Edit2 className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      )}
+                      {msg.type === 'ai' && (
+                        <>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleTextToSpeech(msg.content, msg.id)}
+                            disabled={isLoading}
+                            className={`h-7 px-2 text-xs text-muted-foreground hover:text-foreground ${
+                              userPlan !== 'pro' ? 'opacity-50' : ''
+                            }`}
+                            title={userPlan !== 'pro' ? 'Pro feature' : speakingMessageId === msg.id ? 'Stop speaking' : 'Read aloud'}
+                          >
+                            {speakingMessageId === msg.id && isSpeaking ? (
+                              <VolumeX className="h-3 w-3 mr-1" />
+                            ) : (
+                              <Volume2 className="h-3 w-3 mr-1" />
+                            )}
+                            {userPlan !== 'pro' && <Lock className="h-2 w-2 mr-0.5" />}
+                            {speakingMessageId === msg.id && isSpeaking ? 'Stop' : 'Listen'}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRegenerate(index)}
+                            disabled={isLoading}
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                          >
+                            <RefreshCw className={`h-3 w-3 mr-1 ${isLoading ? 'animate-spin' : ''}`} />
+                            Regenerate
+                          </Button>
+                        </>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -877,12 +921,18 @@ const ChatbotPage = () => {
 
           {/* Input */}
           <div className="p-4 border-t border-border bg-card/30 backdrop-blur-sm">
-            <div className="flex space-x-2">
+            <div className="flex items-center space-x-2">
+              <FileUpload
+                onFileSelect={setSelectedFile}
+                selectedFile={selectedFile}
+                onClear={() => setSelectedFile(null)}
+                disabled={isLoading}
+              />
               <Input 
                 value={message} 
                 onChange={(e) => setMessage(e.target.value)} 
                 onKeyPress={handleKeyPress} 
-                placeholder={isListening ? "Listening..." : `Message ShadowTalk AI (${personality} mode)...`}
+                placeholder={isListening ? "Listening... (click to stop)" : `Message ShadowTalk AI (${personality} mode)... Use /imagine for images`}
                 className={`flex-1 ${isListening ? 'border-primary ring-2 ring-primary/30' : ''}`}
                 disabled={isLoading}
               />
@@ -894,13 +944,69 @@ const ChatbotPage = () => {
               >
                 {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
               </Button>
-              <Button onClick={handleSendMessage} className="btn-glow" disabled={isLoading || !message.trim()}>
-                <Send className="h-4 w-4" />
+              <Button
+                onClick={() => setShowImageGenerator(true)}
+                variant="outline"
+                disabled={isLoading}
+                title="Generate image"
+              >
+                <ImageIcon className="h-4 w-4" />
               </Button>
+              {isLoading ? (
+                <Button onClick={stopGeneration} variant="destructive">
+                  <Square className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button onClick={() => handleSendMessage()} className="btn-glow" disabled={!message.trim() && !selectedFile}>
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
       </div>
+
+      {/* Image Generator Modal */}
+      {showImageGenerator && (
+        <ImageGenerator
+          onClose={() => setShowImageGenerator(false)}
+          onImageGenerated={(content, prompt) => {
+            setShowImageGenerator(false);
+            // Add the image generation request and response to chat
+            const userMsg: Message = {
+              id: crypto.randomUUID(),
+              type: 'user',
+              content: `/imagine ${prompt}`,
+              timestamp: new Date()
+            };
+            const aiMsg: Message = {
+              id: crypto.randomUUID(),
+              type: 'ai',
+              content: `🎨 **Image Generation Result**\n\n${content}`,
+              timestamp: new Date()
+            };
+            setMessages(prev => [...prev, userMsg, aiMsg]);
+          }}
+        />
+      )}
+
+      {/* Code Canvas */}
+      {codeCanvas && (
+        <CodeCanvas
+          code={codeCanvas.code}
+          language={codeCanvas.language}
+          onClose={() => setCodeCanvas(null)}
+        />
+      )}
+
+      {/* Edit Message Dialog */}
+      {editingMessage && (
+        <EditMessageDialog
+          message={editingMessage.content}
+          onSave={(newContent) => handleEditMessage(editingMessage.index, newContent)}
+          onCancel={() => setEditingMessage(null)}
+        />
+      )}
     </div>
   );
 };
