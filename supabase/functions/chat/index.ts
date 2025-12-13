@@ -11,11 +11,47 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality } = await req.json();
+    const { messages, personality, generateImage, imagePrompt } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Image generation mode
+    if (generateImage && imagePrompt) {
+      console.log("[CHAT] Generating image with prompt:", imagePrompt);
+      
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-pro-image-preview",
+          messages: [
+            { 
+              role: "user", 
+              content: `Generate an image based on this description: ${imagePrompt}. Make it high quality and visually appealing.`
+            }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("[CHAT] Image generation error:", response.status, errorText);
+        throw new Error("Image generation failed");
+      }
+
+      const result = await response.json();
+      return new Response(JSON.stringify({ 
+        type: "image",
+        content: result.choices?.[0]?.message?.content || "Image generation failed"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("[CHAT] Processing request with", messages.length, "messages, personality:", personality);
@@ -42,6 +78,16 @@ Always format your responses using proper Markdown for clarity:
 
     const systemPrompt = systemPrompts[personality] || systemPrompts.friendly;
 
+    // Check if any message contains image data (multimodal)
+    const hasImageContent = messages.some((m: any) => 
+      Array.isArray(m.content) && m.content.some((c: any) => c.type === 'image_url')
+    );
+
+    // Use vision model for images
+    const model = hasImageContent ? "google/gemini-2.5-pro" : "google/gemini-2.5-flash";
+
+    console.log("[CHAT] Using model:", model, "hasImages:", hasImageContent);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -49,7 +95,7 @@ Always format your responses using proper Markdown for clarity:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model,
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
