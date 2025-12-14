@@ -1,0 +1,135 @@
+import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export type ChatMode = 
+  | "general"
+  | "code"
+  | "translate"
+  | "summarize"
+  | "debug"
+  | "brainstorm"
+  | "image"
+  | "explain"
+  | "creative"
+  | "music";
+
+interface ModeSelectorProps {
+  mode: ChatMode;
+  onModeChange: (mode: ChatMode) => void;
+  disabled?: boolean;
+}
+
+const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: string; color: string }[] = [
+  { 
+    value: "general", 
+    label: "General Chat", 
+    icon: <MessageSquare className="h-4 w-4" />,
+    prompt: "",
+    color: "text-foreground"
+  },
+  { 
+    value: "code", 
+    label: "Write Code", 
+    icon: <Code className="h-4 w-4" />,
+    prompt: "You are in code writing mode. Write clean, well-commented, production-ready code. Always include explanations and best practices.",
+    color: "text-blue-500"
+  },
+  { 
+    value: "translate", 
+    label: "Translate", 
+    icon: <Languages className="h-4 w-4" />,
+    prompt: "You are in translation mode. Translate text accurately while preserving meaning and tone. Auto-detect the source language if not specified.",
+    color: "text-cyan-500"
+  },
+  { 
+    value: "summarize", 
+    label: "Summarize", 
+    icon: <FileText className="h-4 w-4" />,
+    prompt: "You are in summarization mode. Provide concise, clear summaries that capture the key points and main ideas.",
+    color: "text-green-500"
+  },
+  { 
+    value: "debug", 
+    label: "Debug Code", 
+    icon: <Bug className="h-4 w-4" />,
+    prompt: "You are in debugging mode. Analyze code for bugs, suggest fixes, and explain the issues clearly. Provide corrected code.",
+    color: "text-red-500"
+  },
+  { 
+    value: "brainstorm", 
+    label: "Brainstorm", 
+    icon: <Lightbulb className="h-4 w-4" />,
+    prompt: "You are in brainstorming mode. Generate creative ideas, explore possibilities, and think outside the box.",
+    color: "text-yellow-500"
+  },
+  { 
+    value: "image", 
+    label: "Generate Image", 
+    icon: <Image className="h-4 w-4" />,
+    prompt: "You are in image description mode. Help users craft detailed image prompts for AI generation.",
+    color: "text-purple-500"
+  },
+  { 
+    value: "explain", 
+    label: "Explain", 
+    icon: <MessageSquare className="h-4 w-4" />,
+    prompt: "You are in explanation mode. Explain concepts clearly and simply, using analogies and examples when helpful.",
+    color: "text-pink-500"
+  },
+  { 
+    value: "creative", 
+    label: "Creative Writing", 
+    icon: <Pen className="h-4 w-4" />,
+    prompt: "You are in creative writing mode. Write engaging, imaginative content with vivid language and compelling narratives.",
+    color: "text-orange-500"
+  },
+  { 
+    value: "music", 
+    label: "Recommend Music", 
+    icon: <Music className="h-4 w-4" />,
+    prompt: "You are in music recommendation mode. Suggest songs, artists, and playlists based on user preferences. Include YouTube or Spotify links when possible.",
+    color: "text-rose-500"
+  },
+];
+
+export const getModePrompt = (mode: ChatMode): string => {
+  return modes.find(m => m.value === mode)?.prompt || "";
+};
+
+export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps) => {
+  const currentMode = modes.find(m => m.value === mode) || modes[0];
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="gap-2 min-w-[140px]"
+          disabled={disabled}
+        >
+          <span className={currentMode.color}>{currentMode.icon}</span>
+          <span className="truncate">{currentMode.label}</span>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-48">
+        {modes.map((m) => (
+          <DropdownMenuItem
+            key={m.value}
+            onClick={() => onModeChange(m.value)}
+            className={`gap-2 cursor-pointer ${mode === m.value ? "bg-muted" : ""}`}
+          >
+            <span className={m.color}>{m.icon}</span>
+            <span>{m.label}</span>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
