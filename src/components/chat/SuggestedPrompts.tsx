@@ -1,4 +1,4 @@
-import { Sparkles, Code, FileText, Lightbulb, Image, MessageSquare } from "lucide-react";
+import { Sparkles, Code, FileText, Lightbulb, Image, MessageSquare, Languages, Pen, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface SuggestedPromptsProps {
@@ -14,10 +14,22 @@ const prompts = [
     color: "text-blue-500",
   },
   {
+    icon: <Languages className="h-4 w-4" />,
+    label: "Translate",
+    prompt: "Translate this to Spanish: ",
+    color: "text-cyan-500",
+  },
+  {
     icon: <FileText className="h-4 w-4" />,
     label: "Summarize",
     prompt: "Summarize the following text: ",
     color: "text-green-500",
+  },
+  {
+    icon: <Pen className="h-4 w-4" />,
+    label: "Debug code",
+    prompt: "Help me debug this error: ",
+    color: "text-red-500",
   },
   {
     icon: <Lightbulb className="h-4 w-4" />,
@@ -42,6 +54,12 @@ const prompts = [
     label: "Creative writing",
     prompt: "Write a short story about ",
     color: "text-orange-500",
+  },
+  {
+    icon: <Music className="h-4 w-4" />,
+    label: "Recommend music",
+    prompt: "Recommend songs similar to ",
+    color: "text-rose-500",
   },
 ];
 
