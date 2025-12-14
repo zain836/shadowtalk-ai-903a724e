@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality, generateImage, imagePrompt } = await req.json();
+    const { messages, personality, generateImage, imagePrompt, mode, modePrompt } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -87,7 +87,7 @@ serve(async (req) => {
       });
     }
 
-    console.log("[CHAT] Processing request with", messages.length, "messages, personality:", personality);
+    console.log("[CHAT] Processing request with", messages.length, "messages, personality:", personality, "mode:", mode);
 
     const markdownInstructions = `
 Always format your responses using proper Markdown for clarity:
@@ -152,7 +152,13 @@ Always be helpful and suggest web-friendly alternatives when native features are
       creative: `You are ShadowTalk AI in creative mode. You're imaginative, artistic, and love thinking outside the box. Use vivid metaphors, colorful language, and creative analogies. You see possibilities everywhere and encourage bold ideas.${markdownInstructions}${capabilitiesPrompt}`
     };
 
-    const systemPrompt = systemPrompts[personality] || systemPrompts.friendly;
+    // Combine base personality prompt with mode-specific instructions
+    let systemPrompt = systemPrompts[personality] || systemPrompts.friendly;
+    
+    // Add mode-specific prompt if provided
+    if (modePrompt && mode !== 'general') {
+      systemPrompt += `\n\n## Current Mode: ${mode?.toUpperCase() || 'GENERAL'}\n${modePrompt}`;
+    }
 
     // Check if any message contains image data (multimodal)
     const hasImageContent = messages.some((m: any) => 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff, Volume2, VolumeX, Download, Lock, Square, Edit2, Image as ImageIcon, Code } from "lucide-react";
+import { Bot, User, Send, ArrowLeft, LogOut, Settings, Plus, MessageSquare, Trash2, Sparkles, Briefcase, Laugh, Heart, Copy, Check, RefreshCw, Mic, MicOff, Volume2, VolumeX, Download, Lock, Square, Edit2, Image as ImageIcon } from "lucide-react";
 
 // Web Speech API type declarations
 interface SpeechRecognitionEvent extends Event {
@@ -50,6 +50,8 @@ import { SuggestedPrompts } from "@/components/chat/SuggestedPrompts";
 import { CodeCanvas } from "@/components/chat/CodeCanvas";
 import { ImageGenerator } from "@/components/chat/ImageGenerator";
 import { EditMessageDialog } from "@/components/chat/EditMessageDialog";
+import { ModeSelector, ChatMode, getModePrompt } from "@/components/chat/ModeSelector";
+import { CodeBlock } from "@/components/chat/CodeBlock";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -71,29 +73,6 @@ const personalities: { value: Personality; label: string; icon: React.ReactNode;
   { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" />, description: "Imaginative and bold" },
 ];
 
-const CopyButton = ({ text }: { text: string }) => {
-  const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast({ title: "Copied to clipboard" });
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      onClick={handleCopy}
-      className="absolute top-2 right-2 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
-    >
-      {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-    </Button>
-  );
-};
-
 const ChatbotPage = () => {
   const navigate = useNavigate();
   const { user, userPlan, signOut, checkSubscription } = useAuth();
@@ -105,6 +84,7 @@ const ChatbotPage = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [personality, setPersonality] = useState<Personality>("friendly");
+  const [chatMode, setChatMode] = useState<ChatMode>("general");
   const [showSidebar, setShowSidebar] = useState(true);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -333,13 +313,16 @@ const ChatbotPage = () => {
         content: buildMessageContent(userMessage)
       });
 
+      // Get mode-specific system prompt
+      const modePrompt = getModePrompt(chatMode);
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
         },
-        body: JSON.stringify({ messages: chatMessages, personality }),
+        body: JSON.stringify({ messages: chatMessages, personality, mode: chatMode, modePrompt }),
         signal: abortControllerRef.current.signal,
       });
 
@@ -686,10 +669,22 @@ const ChatbotPage = () => {
                 <h1 className="text-2xl font-bold gradient-text">ShadowTalk AI</h1>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
+              {/* Mode Selector */}
+              <ModeSelector 
+                mode={chatMode} 
+                onModeChange={(mode) => {
+                  setChatMode(mode);
+                  if (mode === 'image') {
+                    setShowImageGenerator(true);
+                  }
+                }}
+                disabled={isLoading}
+              />
+              
               {/* Personality Selector */}
               <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
-                <SelectTrigger className="w-40">
+                <SelectTrigger className="w-36">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -764,35 +759,21 @@ const ChatbotPage = () => {
                               
                               if (!inline && match) {
                                 return (
-                                  <div className="relative group/code">
-                                    <div className="flex items-center justify-between bg-muted/50 px-3 py-1 rounded-t-md border-b border-border">
-                                      <span className="text-xs text-muted-foreground">{match[1]}</span>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          onClick={() => handleOpenCodeCanvas(codeString, match[1])}
-                                          className="h-6 px-2 text-xs"
-                                        >
-                                          <Code className="h-3 w-3 mr-1" />
-                                          Open
-                                        </Button>
-                                        <CopyButton text={codeString} />
-                                      </div>
-                                    </div>
-                                    <pre className="!mt-0 !rounded-t-none">
-                                      <code className={className} {...props}>{children}</code>
-                                    </pre>
-                                  </div>
+                                  <CodeBlock
+                                    code={codeString}
+                                    language={match[1]}
+                                    onOpenCanvas={handleOpenCodeCanvas}
+                                  />
                                 );
                               }
                               return inline ? (
                                 <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>
                               ) : (
-                                <div className="relative group/code">
-                                  <CopyButton text={codeString} />
-                                  <pre><code className={className} {...props}>{children}</code></pre>
-                                </div>
+                                <CodeBlock
+                                  code={codeString}
+                                  language="text"
+                                  onOpenCanvas={handleOpenCodeCanvas}
+                                />
                               );
                             },
                             ul({ children }) {
