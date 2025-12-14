@@ -29,26 +29,59 @@ serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-3-pro-image-preview",
+          model: "google/gemini-2.5-flash-image-preview",
           messages: [
             { 
               role: "user", 
-              content: `Generate an image based on this description: ${imagePrompt}. Make it high quality and visually appealing.`
+              content: `Generate an image: ${imagePrompt}. High quality, detailed, visually appealing.`
             }
           ],
+          modalities: ["image", "text"],
         }),
       });
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error("[CHAT] Image generation error:", response.status, errorText);
+        
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ 
+            error: "Daily image generation limit reached (100/day). Try again tomorrow." 
+          }), {
+            status: 429,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        
         throw new Error("Image generation failed");
       }
 
       const result = await response.json();
+      console.log("[CHAT] Image generation result keys:", Object.keys(result));
+      
+      // Extract image from the response
+      const message = result.choices?.[0]?.message;
+      const images = message?.images;
+      const textContent = message?.content || "";
+      
+      if (images && images.length > 0) {
+        // Return the base64 image URL
+        const imageUrl = images[0]?.image_url?.url;
+        console.log("[CHAT] Image generated successfully, has base64:", imageUrl?.startsWith("data:"));
+        
+        return new Response(JSON.stringify({ 
+          type: "image",
+          imageUrl: imageUrl,
+          content: textContent
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      // Fallback if no image returned
       return new Response(JSON.stringify({ 
-        type: "image",
-        content: result.choices?.[0]?.message?.content || "Image generation failed"
+        type: "text",
+        content: textContent || "Could not generate image. Please try a different prompt."
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
