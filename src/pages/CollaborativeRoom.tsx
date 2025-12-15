@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Users, Bot, Loader2 } from "lucide-react";
+import { ArrowLeft, Send, Users, Bot, Loader2, Link2, Copy, Check } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RoomMessage {
   id: string;
@@ -40,6 +41,7 @@ const CollaborativeRoom = () => {
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [roomName, setRoomName] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -238,6 +240,14 @@ const CollaborativeRoom = () => {
     }
   };
 
+  const copyInviteLink = async () => {
+    const inviteUrl = `${window.location.origin}/rooms?invite=${roomId}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    setLinkCopied(true);
+    toast({ title: "Invite link copied!", description: "Share this link to invite others to this room" });
+    setTimeout(() => setLinkCopied(false), 2000);
+  };
+
   const getAvatarColor = (name: string) => {
     const colors = ['bg-primary', 'bg-secondary', 'bg-accent', 'bg-emerald-500', 'bg-amber-500'];
     const index = name.charCodeAt(0) % colors.length;
@@ -262,17 +272,42 @@ const CollaborativeRoom = () => {
             </div>
           </div>
           
-          <div className="flex items-center gap-1">
-            {participants.slice(0, 5).map(p => (
-              <Avatar key={p.id} className="h-8 w-8 border-2 border-background">
-                <AvatarFallback className={`text-xs ${getAvatarColor(p.display_name || 'A')}`}>
-                  {(p.display_name || 'A')[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            ))}
-            {participants.length > 5 && (
-              <Badge variant="secondary" className="ml-1">+{participants.length - 5}</Badge>
-            )}
+          <div className="flex items-center gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={copyInviteLink} className="rounded-xl gap-2">
+                    {linkCopied ? (
+                      <>
+                        <Check className="h-4 w-4 text-green-500" />
+                        Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Link2 className="h-4 w-4" />
+                        Invite
+                      </>
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy invite link to share with others</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            
+            <div className="flex items-center gap-1">
+              {participants.slice(0, 5).map(p => (
+                <Avatar key={p.id} className="h-8 w-8 border-2 border-background">
+                  <AvatarFallback className={`text-xs ${getAvatarColor(p.display_name || 'A')}`}>
+                    {(p.display_name || 'A')[0].toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ))}
+              {participants.length > 5 && (
+                <Badge variant="secondary" className="ml-1">+{participants.length - 5}</Badge>
+              )}
+            </div>
           </div>
         </div>
       </header>

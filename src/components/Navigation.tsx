@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Globe, Shield, BookOpen, Users } from "lucide-react";
+import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -11,6 +11,7 @@ const Navigation = () => {
     { name: "Features", href: "#features", icon: Zap, isLink: false },
     { name: "Pricing", href: "/pricing", icon: Shield, isLink: true },
     { name: "Docs", href: "/docs", icon: BookOpen, isLink: true },
+    { name: "Changelog", href: "/changelog", icon: History, isLink: true },
     { name: "Rooms", href: "/rooms", icon: Users, isLink: true },
   ];
 

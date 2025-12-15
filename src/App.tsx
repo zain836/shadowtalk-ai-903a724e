@@ -11,6 +11,7 @@ import ChatbotPage from "./pages/ChatbotPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
 import DocsPage from "./pages/DocsPage";
+import ChangelogPage from "./pages/ChangelogPage";
 import ChatRoomsPage from "./pages/ChatRoomsPage";
 import CollaborativeRoom from "./pages/CollaborativeRoom";
 import NotFound from "./pages/NotFound";
@@ -33,6 +34,7 @@ const App = () => (
               <Route path="/chatbot" element={<ChatbotPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/docs" element={<DocsPage />} />
+              <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/rooms" element={<ChatRoomsPage />} />
               <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
               <Route path="*" element={<NotFound />} />

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,8 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Plus, Users, Lock, Globe, Trash2 } from "lucide-react";
-
+import { ArrowLeft, Plus, Users, Lock, Globe, Trash2, Link2, Copy, Check } from "lucide-react";
 interface ChatRoom {
   id: string;
   name: string;
@@ -24,12 +23,22 @@ interface ChatRoom {
 
 const ChatRoomsPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { toast } = useToast();
   
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [newRoom, setNewRoom] = useState({ name: "", description: "", isPublic: true });
+  const [copiedRoomId, setCopiedRoomId] = useState<string | null>(null);
+
+  // Handle invite link
+  useEffect(() => {
+    const inviteId = searchParams.get('invite');
+    if (inviteId && user) {
+      navigate(`/rooms/${inviteId}`);
+    }
+  }, [searchParams, user, navigate]);
 
   useEffect(() => {
     if (!user) {
@@ -84,8 +93,17 @@ const ChatRoomsPage = () => {
 
     if (!error) {
       setRooms(prev => prev.filter(r => r.id !== roomId));
-      toast({ title: "Room deleted" });
+    toast({ title: "Room deleted" });
     }
+  };
+
+  const copyInviteLink = async (roomId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const inviteUrl = `${window.location.origin}/rooms?invite=${roomId}`;
+    await navigator.clipboard.writeText(inviteUrl);
+    setCopiedRoomId(roomId);
+    toast({ title: "Link copied!", description: "Share this link to invite others" });
+    setTimeout(() => setCopiedRoomId(null), 2000);
   };
 
   return (
@@ -176,16 +194,31 @@ const ChatRoomsPage = () => {
                       )}
                       <CardTitle className="text-lg">{room.name}</CardTitle>
                     </div>
-                    {room.created_by === user?.id && (
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={e => { e.stopPropagation(); deleteRoom(room.id); }}
+                        className="h-8 w-8"
+                        onClick={e => copyInviteLink(room.id, e)}
+                        title="Copy invite link"
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        {copiedRoomId === room.id ? (
+                          <Check className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <Link2 className="h-4 w-4" />
+                        )}
                       </Button>
-                    )}
+                      {room.created_by === user?.id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={e => { e.stopPropagation(); deleteRoom(room.id); }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <CardDescription>{room.description || 'No description'}</CardDescription>
                 </CardHeader>
