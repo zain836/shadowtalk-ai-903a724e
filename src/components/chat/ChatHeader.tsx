@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users, MoreVertical } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Heart, Laugh, Briefcase, Sparkles } from "lucide-react";
 import { OfflineModeIndicator } from "./OfflineModeIndicator";
 
@@ -156,178 +163,75 @@ export const ChatHeader = ({
         {/* Offline Mode Indicator */}
         <OfflineModeIndicator />
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-1 ml-1">
-          {/* Collaborative Rooms - Pro+ */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate('/rooms')}
-                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
-                >
-                  <Users className="h-4 w-4" />
-                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isProOrHigher ? 'Collaborative Rooms' : 'Pro feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+        {/* More Actions Dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            {/* Pro Features */}
+            <DropdownMenuItem onClick={() => navigate('/rooms')} disabled={!isProOrHigher}>
+              <Users className="h-4 w-4 mr-2" />
+              Collaborative Rooms
+              {!isProOrHigher && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenScriptAutomation} disabled={!isProOrHigher}>
+              <Workflow className="h-4 w-4 mr-2" />
+              Script Automation
+              {!isProOrHigher && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onExport} disabled={!isProOrHigher}>
+              <Download className="h-4 w-4 mr-2" />
+              Export Chat
+              {!isProOrHigher && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
 
-          {/* Model Fine-Tuning - Elite */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenModelFineTuning}
-                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
-                >
-                  <Brain className="h-4 w-4" />
-                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isElite ? 'Model Fine-Tuning' : 'Elite feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <DropdownMenuSeparator />
 
-          {/* White-Label Branding - Elite */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenWhiteLabelBranding}
-                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
-                >
-                  <Palette className="h-4 w-4" />
-                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isElite ? 'White-Label Branding' : 'Elite feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            {/* Elite Features */}
+            <DropdownMenuItem onClick={onOpenModelFineTuning} disabled={!isElite}>
+              <Brain className="h-4 w-4 mr-2" />
+              Model Fine-Tuning
+              {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenWhiteLabelBranding} disabled={!isElite}>
+              <Palette className="h-4 w-4 mr-2" />
+              White-Label Branding
+              {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenAgentWorkflows} disabled={!isElite}>
+              <Zap className="h-4 w-4 mr-2" />
+              AI Agent Workflows
+              {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenStealthVault} disabled={!isElite}>
+              <Shield className="h-4 w-4 mr-2" />
+              Stealth Vault
+              {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onOpenAnalytics} disabled={!isElite}>
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Analytics
+              {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+            </DropdownMenuItem>
 
-          {/* AI Agent Workflows - Elite */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenAgentWorkflows}
-                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
-                >
-                  <Zap className="h-4 w-4" />
-                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isElite ? 'AI Agent Workflows' : 'Elite feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            <DropdownMenuSeparator />
 
-          {/* Stealth Vault - Elite */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenStealthVault}
-                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
-                >
-                  <Shield className="h-4 w-4" />
-                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isElite ? 'Stealth Vault' : 'Elite feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Script Automation - Pro+ */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenScriptAutomation}
-                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
-                >
-                  <Workflow className="h-4 w-4" />
-                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isProOrHigher ? 'Script Automation' : 'Pro feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Analytics - Elite */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onOpenAnalytics}
-                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
-                >
-                  <BarChart3 className="h-4 w-4" />
-                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isElite ? 'Analytics' : 'Elite feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Export - Pro+ */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={onExport}
-                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
-                >
-                  <Download className="h-4 w-4" />
-                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isProOrHigher ? 'Export chat' : 'Pro feature'}</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-
-          {/* Settings */}
-          {isProOrHigher && (
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={onManageSubscription} className="h-9 w-9 rounded-xl">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Manage subscription</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          )}
-
-          {/* Sign Out */}
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={onSignOut} className="h-9 w-9 rounded-xl">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Sign out</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
+            {/* Account */}
+            {isProOrHigher && (
+              <DropdownMenuItem onClick={onManageSubscription}>
+                <Settings className="h-4 w-4 mr-2" />
+                Manage Subscription
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem onClick={onSignOut}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
