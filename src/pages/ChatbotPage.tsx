@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
+import { saveSearchToHistory } from "@/components/chat/SearchHistory";
 import { useToast } from "@/hooks/use-toast";
 import { ChatMode, getModePrompt } from "@/components/chat/ModeSelector";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -317,6 +318,11 @@ const ChatbotPage = () => {
       const requestBody = isSearchMode 
         ? { webSearch: true, searchQuery: messageToSend }
         : { messages: chatMessages, personality, mode: chatMode, modePrompt: getModePrompt(chatMode) };
+
+      // Save search to history if in search mode
+      if (isSearchMode && user) {
+        saveSearchToHistory(user.id, messageToSend);
+      }
 
       const resp = await fetch(CHAT_URL, {
         method: "POST",
