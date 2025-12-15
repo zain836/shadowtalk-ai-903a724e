@@ -1,4 +1,4 @@
-import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf, Shield } from "lucide-react";
+import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf, Shield, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ export type ChatMode =
   | "explain"
   | "creative"
   | "music"
+  | "search"
   | "cpf"
   | "ppag"
   | "hsca";
@@ -101,6 +102,13 @@ const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: st
     color: "text-rose-500"
   },
   { 
+    value: "search", 
+    label: "🔍 Web Search", 
+    icon: <Globe className="h-4 w-4" />,
+    prompt: "You are in web search mode. Search the web for real-time information and provide accurate, up-to-date answers with sources.",
+    color: "text-indigo-500"
+  },
+  { 
     value: "cpf", 
     label: "🌊 Cognitive Filter", 
     icon: <Brain className="h-4 w-4" />,
@@ -129,8 +137,8 @@ export const getModePrompt = (mode: ChatMode): string => {
 
 export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps) => {
   const currentMode = modes.find(m => m.value === mode) || modes[0];
-  const standardModes = modes.filter(m => !['cpf', 'ppag', 'hsca'].includes(m.value));
-  const specialModes = modes.filter(m => ['cpf', 'ppag', 'hsca'].includes(m.value));
+  const standardModes = modes.filter(m => !['cpf', 'ppag', 'hsca', 'search'].includes(m.value));
+  const specialModes = modes.filter(m => ['search', 'cpf', 'ppag', 'hsca'].includes(m.value));
 
   return (
     <DropdownMenu>
