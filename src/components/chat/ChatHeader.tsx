@@ -37,17 +37,17 @@ import { useIsMobile } from "@/hooks/use-mobile";
 type Personality = "friendly" | "sarcastic" | "professional" | "creative" | "meticulous" | "curious" | "diplomatic" | "witty" | "pragmatic" | "inquisitive";
 type UserPlan = 'free' | 'pro' | 'elite';
 
-const personalities: { value: Personality; label: string; icon: React.ReactNode }[] = [
-  { value: "friendly", label: "Friendly", icon: <Heart className="h-4 w-4" /> },
-  { value: "sarcastic", label: "Sarcastic", icon: <Laugh className="h-4 w-4" /> },
-  { value: "professional", label: "Professional", icon: <Briefcase className="h-4 w-4" /> },
-  { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" /> },
-  { value: "meticulous", label: "Meticulous", icon: <Search className="h-4 w-4" /> },
-  { value: "curious", label: "Curious", icon: <Lightbulb className="h-4 w-4" /> },
-  { value: "diplomatic", label: "Diplomatic", icon: <Scale className="h-4 w-4" /> },
-  { value: "witty", label: "Witty", icon: <MessageCircle className="h-4 w-4" /> },
-  { value: "pragmatic", label: "Pragmatic", icon: <Target className="h-4 w-4" /> },
-  { value: "inquisitive", label: "Inquisitive", icon: <HelpCircle className="h-4 w-4" /> },
+const personalities: { value: Personality; label: string; icon: React.ReactNode; description: string }[] = [
+  { value: "friendly", label: "Friendly", icon: <Heart className="h-4 w-4" />, description: "Warm and enthusiastic with a conversational tone" },
+  { value: "sarcastic", label: "Sarcastic", icon: <Laugh className="h-4 w-4" />, description: "Witty and playful with dry humor" },
+  { value: "professional", label: "Professional", icon: <Briefcase className="h-4 w-4" />, description: "Formal and precise with structured responses" },
+  { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" />, description: "Imaginative with vivid metaphors and bold ideas" },
+  { value: "meticulous", label: "Meticulous", icon: <Search className="h-4 w-4" />, description: "Detail-oriented auditor ensuring precision" },
+  { value: "curious", label: "Curious", icon: <Lightbulb className="h-4 w-4" />, description: "Explores deeply to understand your goals" },
+  { value: "diplomatic", label: "Diplomatic", icon: <Scale className="h-4 w-4" />, description: "Balanced mediator for sensitive topics" },
+  { value: "witty", label: "Witty", icon: <MessageCircle className="h-4 w-4" />, description: "Intellectually amusing with clever wordplay" },
+  { value: "pragmatic", label: "Pragmatic", icon: <Target className="h-4 w-4" />, description: "Practical realist focused on what works" },
+  { value: "inquisitive", label: "Inquisitive", icon: <HelpCircle className="h-4 w-4" />, description: "Asks targeted questions for precise answers" },
 ];
 
 interface ChatHeaderProps {
@@ -278,15 +278,18 @@ export const ChatHeader = ({
       <div className="flex items-center gap-2">
         {/* Personality Selector - Compact on mobile */}
         <Select value={personality} onValueChange={(v) => onPersonalityChange(v as Personality)}>
-          <SelectTrigger className="w-[100px] sm:w-[120px] h-9 text-xs rounded-xl border-border/50">
+          <SelectTrigger className="w-[120px] sm:w-[140px] h-9 text-xs rounded-xl border-border/50">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent className="w-[280px]">
             {personalities.map(p => (
               <SelectItem key={p.value} value={p.value}>
                 <div className="flex items-center gap-2">
                   {p.icon}
-                  <span>{p.label}</span>
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">{p.label}</span>
+                    <span className="text-[10px] text-muted-foreground leading-tight">{p.description}</span>
+                  </div>
                 </div>
               </SelectItem>
             ))}
