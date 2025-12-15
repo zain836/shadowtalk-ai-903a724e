@@ -59,7 +59,7 @@ type Message = {
   attachment?: { type: 'image' | 'file'; data: string; name: string; mimeType: string };
 };
 type Conversation = { id: string; title: string; created_at: string };
-type Personality = "friendly" | "sarcastic" | "professional" | "creative";
+type Personality = "friendly" | "sarcastic" | "professional" | "creative" | "meticulous" | "curious" | "diplomatic" | "witty" | "pragmatic" | "inquisitive";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -178,7 +178,13 @@ const ChatbotPage = () => {
       friendly: "👋 Hi there! I'm ShadowTalk AI, your intelligent assistant. How can I help you today?",
       sarcastic: "Oh great, another conversation. Just kidding! 😏 What can I do for you?",
       professional: "Welcome. I'm here to assist you with any questions or tasks. How may I help?",
-      creative: "✨ Hello, creative soul! Ready to explore ideas together? What's on your mind?"
+      creative: "✨ Hello, creative soul! Ready to explore ideas together? What's on your mind?",
+      meticulous: "Welcome. I'll ensure every detail is covered. What would you like me to analyze thoroughly?",
+      curious: "Hello! I'm excited to learn about your challenge. What shall we explore together?",
+      diplomatic: "Good to see you. I'm here to help navigate any situation with care. How may I assist?",
+      witty: "Ah, a new conversation! The plot thickens. What intellectual adventure awaits us today?",
+      pragmatic: "Let's get down to business. What's the most practical problem I can help you solve today?",
+      inquisitive: "Welcome! To serve you best, I'll need to understand your needs precisely. What can I help with?"
     };
     return messages[personality];
   };
