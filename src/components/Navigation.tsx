@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Globe, Shield } from "lucide-react";
+import { Menu, X, Bot, Zap, Globe, Shield, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -8,11 +8,19 @@ const Navigation = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    { name: "Features", href: "#features", icon: Zap },
-    { name: "Pricing", href: "#pricing", icon: Shield },
-    { name: "Docs/FAQ", href: "#faq", icon: Globe },
-    { name: "Community", href: "#community", icon: Bot },
+    { name: "Features", href: "#features", icon: Zap, isLink: false },
+    { name: "Pricing", href: "/pricing", icon: Shield, isLink: true },
+    { name: "Docs", href: "/docs", icon: BookOpen, isLink: true },
+    { name: "Rooms", href: "/rooms", icon: Users, isLink: true },
   ];
+
+  const handleNavClick = (item: typeof navItems[0]) => {
+    if (item.isLink) {
+      navigate(item.href);
+    } else {
+      document.getElementById(item.href.substring(1))?.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -35,13 +43,7 @@ const Navigation = () => {
             {navItems.map((item) => (
               <button
                 key={item.name}
-                onClick={() => {
-                  if (item.name === "Pricing") {
-                    navigate('/pricing');
-                  } else {
-                    document.getElementById(item.href.substring(1))?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
+                onClick={() => handleNavClick(item)}
                 className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors"
               >
                 <item.icon className="h-4 w-4" />
@@ -85,11 +87,7 @@ const Navigation = () => {
                 <button
                   key={item.name}
                   onClick={() => {
-                    if (item.name === "Pricing") {
-                      navigate('/pricing');
-                    } else {
-                      document.getElementById(item.href.substring(1))?.scrollIntoView({ behavior: 'smooth' });
-                    }
+                    handleNavClick(item);
                     setIsMenuOpen(false);
                   }}
                   className="flex items-center space-x-3 text-muted-foreground hover:text-primary transition-colors w-full text-left"
