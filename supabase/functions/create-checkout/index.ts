@@ -25,6 +25,10 @@ serve(async (req) => {
   try {
     logStep("Function started");
     
+    const { priceId } = await req.json();
+    if (!priceId) throw new Error("Price ID is required");
+    logStep("Price ID received", { priceId });
+    
     const authHeader = req.headers.get("Authorization")!;
     const token = authHeader.replace("Bearer ", "");
     const { data } = await supabaseClient.auth.getUser(token);
@@ -53,13 +57,13 @@ serve(async (req) => {
       customer_email: customerId ? undefined : user.email,
       line_items: [
         {
-          price: "price_1ScezZInnwEWcho15wMKeOMU",
+          price: priceId,
           quantity: 1,
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/chatbot?success=true`,
-      cancel_url: `${origin}/pricing?canceled=true`,
+      success_url: `${origin}/chatbot?checkout=success`,
+      cancel_url: `${origin}/pricing?checkout=canceled`,
     });
 
     logStep("Checkout session created", { sessionId: session.id });
