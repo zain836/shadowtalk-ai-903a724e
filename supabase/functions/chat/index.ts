@@ -11,11 +11,89 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location, securityAudit } = await req.json();
+    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location, securityAudit, webSearch, searchQuery } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // Web Search
+    if (webSearch && searchQuery) {
+      console.log("[CHAT] Performing web search for:", searchQuery);
+      
+      const GOOGLE_SEARCH_API_KEY = Deno.env.get('GOOGLE_SEARCH_API_KEY');
+      const GOOGLE_SEARCH_ENGINE_ID = Deno.env.get('GOOGLE_SEARCH_ENGINE_ID');
+      
+      if (!GOOGLE_SEARCH_API_KEY || !GOOGLE_SEARCH_ENGINE_ID) {
+        return new Response(JSON.stringify({ error: "Web search not configured" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      const searchUrl = new URL('https://www.googleapis.com/customsearch/v1');
+      searchUrl.searchParams.set('key', GOOGLE_SEARCH_API_KEY);
+      searchUrl.searchParams.set('cx', GOOGLE_SEARCH_ENGINE_ID);
+      searchUrl.searchParams.set('q', searchQuery);
+      searchUrl.searchParams.set('num', '5');
+      
+      const searchResponse = await fetch(searchUrl.toString());
+      const searchData = await searchResponse.json();
+      
+      if (!searchResponse.ok) {
+        console.error("[CHAT] Search error:", searchData);
+        return new Response(JSON.stringify({ error: searchData.error?.message || "Search failed" }), {
+          status: searchResponse.status,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      
+      const results = (searchData.items || []).map((item: any) => ({
+        title: item.title,
+        link: item.link,
+        snippet: item.snippet,
+      }));
+      
+      // Now use AI to synthesize search results into a response
+      const searchContext = results.map((r: any, i: number) => 
+        `[${i + 1}] **${r.title}**\n${r.snippet}\nSource: ${r.link}`
+      ).join('\n\n');
+      
+      const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { 
+              role: "system", 
+              content: `You are a helpful AI assistant with real-time web search capabilities. Use the search results provided to give accurate, up-to-date information. Always cite your sources using the format [1], [2], etc. and include the source links at the end of your response.
+
+Format your response with:
+1. A clear, comprehensive answer synthesized from the search results
+2. Citations throughout using [1], [2], etc.
+3. A "Sources" section at the end listing all referenced links`
+            },
+            { 
+              role: "user", 
+              content: `User query: "${searchQuery}"\n\nSearch Results:\n${searchContext}\n\nProvide a comprehensive answer based on these search results.`
+            }
+          ],
+          stream: true,
+        }),
+      });
+      
+      if (!aiResponse.ok) {
+        throw new Error("Failed to process search results");
+      }
+      
+      return new Response(aiResponse.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
     }
 
     // CPF: Cognitive Load Analysis

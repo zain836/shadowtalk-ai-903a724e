@@ -23,7 +23,8 @@ export type QueryCategory =
   | 'image' 
   | 'explain' 
   | 'creative' 
-  | 'music';
+  | 'music'
+  | 'search';
 
 export interface TrackingMetadata {
   personality?: string;

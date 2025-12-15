@@ -312,10 +312,16 @@ const ChatbotPage = () => {
       }));
       chatMessages.push({ role: "user", content: buildMessageContent(userMessage) });
 
+      // Check if this is a web search request
+      const isSearchMode = chatMode === 'search';
+      const requestBody = isSearchMode 
+        ? { webSearch: true, searchQuery: messageToSend }
+        : { messages: chatMessages, personality, mode: chatMode, modePrompt: getModePrompt(chatMode) };
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-        body: JSON.stringify({ messages: chatMessages, personality, mode: chatMode, modePrompt: getModePrompt(chatMode) }),
+        body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
       });
 
