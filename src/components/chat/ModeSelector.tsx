@@ -1,10 +1,11 @@
-import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music } from "lucide-react";
+import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 
 export type ChatMode = 
@@ -17,7 +18,9 @@ export type ChatMode =
   | "image"
   | "explain"
   | "creative"
-  | "music";
+  | "music"
+  | "cpf"
+  | "ppag";
 
 interface ModeSelectorProps {
   mode: ChatMode;
@@ -96,6 +99,20 @@ const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: st
     prompt: "You are in music recommendation mode. Suggest songs, artists, and playlists based on user preferences. Include YouTube or Spotify links when possible.",
     color: "text-rose-500"
   },
+  { 
+    value: "cpf", 
+    label: "🌊 Cognitive Filter", 
+    icon: <Brain className="h-4 w-4" />,
+    prompt: "You are in Cognitive Pollution Filter (CPF) mode. Help users manage digital overload by analyzing tasks, prioritizing them by cognitive load, and summarizing complex information into actionable items.",
+    color: "text-cyan-400"
+  },
+  { 
+    value: "ppag", 
+    label: "🌍 Eco Actions", 
+    icon: <Leaf className="h-4 w-4" />,
+    prompt: "You are in Planetary Action Guide (PPAG) mode. Provide hyper-personalized, location-specific environmental actions with high impact. Calculate environmental return on investment for each action.",
+    color: "text-emerald-500"
+  },
 ];
 
 export const getModePrompt = (mode: ChatMode): string => {
@@ -118,8 +135,20 @@ export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps
           <span className="truncate">{currentMode.label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-48">
-        {modes.map((m) => (
+      <DropdownMenuContent align="start" className="w-52">
+        {modes.filter(m => m.value !== 'cpf' && m.value !== 'ppag').map((m) => (
+          <DropdownMenuItem
+            key={m.value}
+            onClick={() => onModeChange(m.value)}
+            className={`gap-2 cursor-pointer ${mode === m.value ? "bg-muted" : ""}`}
+          >
+            <span className={m.color}>{m.icon}</span>
+            <span>{m.label}</span>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <div className="px-2 py-1 text-xs text-muted-foreground font-medium">Special Features</div>
+        {modes.filter(m => m.value === 'cpf' || m.value === 'ppag').map((m) => (
           <DropdownMenuItem
             key={m.value}
             onClick={() => onModeChange(m.value)}
