@@ -670,18 +670,6 @@ const ChatbotPage = () => {
               </div>
             </div>
             <div className="flex items-center space-x-3">
-              {/* Mode Selector */}
-              <ModeSelector 
-                mode={chatMode} 
-                onModeChange={(mode) => {
-                  setChatMode(mode);
-                  if (mode === 'image') {
-                    setShowImageGenerator(true);
-                  }
-                }}
-                disabled={isLoading}
-              />
-              
               {/* Personality Selector */}
               <Select value={personality} onValueChange={(v) => setPersonality(v as Personality)}>
                 <SelectTrigger className="w-36">
@@ -903,6 +891,16 @@ const ChatbotPage = () => {
           {/* Input */}
           <div className="p-4 border-t border-border bg-card/30 backdrop-blur-sm">
             <div className="flex items-center space-x-2">
+              <ModeSelector 
+                mode={chatMode} 
+                onModeChange={(mode) => {
+                  setChatMode(mode);
+                  if (mode === 'image') {
+                    setShowImageGenerator(true);
+                  }
+                }}
+                disabled={isLoading}
+              />
               <FileUpload
                 onFileSelect={setSelectedFile}
                 selectedFile={selectedFile}
