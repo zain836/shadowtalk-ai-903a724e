@@ -11,11 +11,187 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext } = await req.json();
+    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    // CPF: Cognitive Load Analysis
+    if (analyzeTask) {
+      console.log("[CHAT] Analyzing cognitive load for task");
+      
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { 
+              role: "system", 
+              content: `You are a Cognitive Load Analyzer. Analyze tasks/messages and return a JSON response.
+              
+Evaluate:
+1. CLS (Cognitive Load Score 1-10): How mentally demanding is this task?
+2. Summary: A brief 1-sentence summary
+3. ActionRequired: The single most important action needed
+4. Priority: low, medium, high, or critical
+
+Consider factors like:
+- Complexity of the task
+- Time sensitivity/urgency
+- Number of steps required
+- Emotional weight
+- Decision-making required
+- Dependencies on others
+
+Return ONLY valid JSON in this exact format:
+{"cls": 7, "summary": "Brief summary here", "actionRequired": "Main action needed", "priority": "high"}`
+            },
+            { role: "user", content: `Analyze this task/message:\n\n${analyzeTask}` }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Task analysis failed");
+      }
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || "";
+      
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return new Response(JSON.stringify(parsed), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("[CHAT] Failed to parse task analysis:", e);
+      }
+      
+      return new Response(JSON.stringify({ 
+        cls: 5, 
+        summary: "Task added to list", 
+        actionRequired: "Review and complete",
+        priority: "medium"
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // PPAG: Get Eco Actions
+    if (getEcoActions && location) {
+      console.log("[CHAT] Getting eco actions for location:", location);
+      
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { 
+              role: "system", 
+              content: `You are a Local Environmental Impact Advisor. Generate personalized eco-actions based on the user's location.
+
+Consider local factors:
+- Climate and weather patterns
+- Local energy grid composition
+- Available public transport
+- Local recycling/composting programs
+- Regional food sources
+- Water scarcity issues
+- Local government incentives
+
+Return ONLY a valid JSON array with 5-7 actions in this exact format:
+[
+  {
+    "id": "unique-id-1",
+    "title": "Action title",
+    "description": "Detailed description of why this helps locally",
+    "impact": {
+      "co2Saved": 2.5,
+      "waterSaved": 50,
+      "energySaved": 3.0,
+      "moneySaved": 5.00
+    },
+    "difficulty": "easy|medium|hard",
+    "category": "energy|water|transport|food|waste",
+    "eroi": 8,
+    "timeRequired": "5 mins"
+  }
+]
+
+EROI (Environmental Return on Investment) should be 1-10 based on impact/effort ratio for this specific location.`
+            },
+            { role: "user", content: `Generate personalized eco-actions for someone living in: ${location}` }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Eco actions generation failed");
+      }
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || "";
+      
+      try {
+        const jsonMatch = content.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return new Response(JSON.stringify(parsed), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("[CHAT] Failed to parse eco actions:", e);
+      }
+      
+      // Fallback actions
+      return new Response(JSON.stringify([
+        {
+          id: "1",
+          title: "Switch to LED bulbs",
+          description: "Replace incandescent bulbs with LEDs to reduce energy consumption by up to 80%",
+          impact: { co2Saved: 1.5, waterSaved: 0, energySaved: 5, moneySaved: 3 },
+          difficulty: "easy",
+          category: "energy",
+          eroi: 9,
+          timeRequired: "10 mins"
+        },
+        {
+          id: "2",
+          title: "Reduce meat consumption",
+          description: "Skip meat for one meal today - this is one of the highest-impact personal actions",
+          impact: { co2Saved: 3.0, waterSaved: 100, energySaved: 0, moneySaved: 5 },
+          difficulty: "medium",
+          category: "food",
+          eroi: 8,
+          timeRequired: "N/A"
+        },
+        {
+          id: "3",
+          title: "Fix a leaky faucet",
+          description: "A dripping faucet can waste over 3,000 gallons per year",
+          impact: { co2Saved: 0.5, waterSaved: 200, energySaved: 0, moneySaved: 10 },
+          difficulty: "medium",
+          category: "water",
+          eroi: 7,
+          timeRequired: "30 mins"
+        }
+      ]), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Image generation mode

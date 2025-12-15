@@ -45,6 +45,8 @@ import { UserContextPanel, UserContext } from "@/components/chat/UserContextPane
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
+import CognitiveLoadPanel from "@/components/chat/CognitiveLoadPanel";
+import PlanetaryActionPanel from "@/components/chat/PlanetaryActionPanel";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -103,6 +105,8 @@ const ChatbotPage = () => {
   // UI State
   const [codeCanvas, setCodeCanvas] = useState<{ code: string; language: string } | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ index: number; content: string } | null>(null);
+  const [isAnalyzingTask, setIsAnalyzingTask] = useState(false);
+  const [isLoadingEcoActions, setIsLoadingEcoActions] = useState(false);
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -553,6 +557,46 @@ const ChatbotPage = () => {
     setCodeCanvas({ code, language });
   };
 
+  const handleAnalyzeTask = async (task: string) => {
+    setIsAnalyzingTask(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ analyzeTask: task }),
+      });
+      
+      if (!resp.ok) throw new Error("Analysis failed");
+      return await resp.json();
+    } finally {
+      setIsAnalyzingTask(false);
+    }
+  };
+
+  const handleGetEcoActions = async (location: string) => {
+    setIsLoadingEcoActions(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ getEcoActions: true, location }),
+      });
+      
+      if (!resp.ok) throw new Error("Failed to get eco actions");
+      return await resp.json();
+    } finally {
+      setIsLoadingEcoActions(false);
+    }
+  };
+
   const maxChats = userPlan === "pro" ? "∞" : "15";
   const showSuggestions = messages.length <= 1;
 
@@ -592,8 +636,23 @@ const ChatbotPage = () => {
             onSave={saveUserContext}
           />
 
+          {/* Special Mode Panels */}
+          {chatMode === 'cpf' && (
+            <CognitiveLoadPanel
+              onAnalyzeTask={handleAnalyzeTask}
+              isAnalyzing={isAnalyzingTask}
+            />
+          )}
+
+          {chatMode === 'ppag' && (
+            <PlanetaryActionPanel
+              onGetActions={handleGetEcoActions}
+              isLoading={isLoadingEcoActions}
+            />
+          )}
+
           {/* Messages */}
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4">
+          <div className={`flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 ${chatMode === 'cpf' || chatMode === 'ppag' ? 'hidden' : ''}`}>
             {showSuggestions && (
               <SuggestedPrompts 
                 onSelect={(prompt) => setMessage(prompt)} 
