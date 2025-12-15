@@ -64,12 +64,28 @@ serve(async (req) => {
     const hasActiveSub = subscriptions.data.length > 0;
     let plan = "free";
     let subscriptionEnd = null;
+    let productId = null;
+
+    // Product IDs for plan detection
+    const PRODUCTS = {
+      pro: "prod_TZocSSpPddFCH1",
+      elite: "prod_TbhEVUPSLMSF53",
+    };
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
-      plan = "pro";
-      logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
+      productId = subscription.items.data[0]?.price?.product as string;
+      
+      if (productId === PRODUCTS.elite) {
+        plan = "elite";
+      } else if (productId === PRODUCTS.pro) {
+        plan = "pro";
+      } else {
+        plan = "pro"; // Default to pro for unknown products
+      }
+      
+      logStep("Active subscription found", { subscriptionId: subscription.id, plan, productId, endDate: subscriptionEnd });
     } else {
       logStep("No active subscription found");
     }
