@@ -6,8 +6,9 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  userPlan: string;
+  userPlan: 'free' | 'pro' | 'elite';
   subscribed: boolean;
+  subscriptionEnd: string | null;
   signOut: () => Promise<void>;
   checkSubscription: () => Promise<void>;
 }
@@ -26,8 +27,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userPlan, setUserPlan] = useState('free');
+  const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'elite'>('free');
   const [subscribed, setSubscribed] = useState(false);
+  const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
 
   const checkSubscription = async () => {
     if (!session) return;
@@ -43,9 +45,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (data?.subscribed) {
         setSubscribed(true);
         setUserPlan(data.plan || 'pro');
+        setSubscriptionEnd(data.subscription_end || null);
       } else {
         setSubscribed(false);
         setUserPlan('free');
+        setSubscriptionEnd(null);
       }
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -63,6 +67,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setUserPlan('free');
           setSubscribed(false);
+          setSubscriptionEnd(null);
         }
 
         setLoading(false);
@@ -100,6 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(null);
     setUserPlan('free');
     setSubscribed(false);
+    setSubscriptionEnd(null);
   };
 
   const value = {
@@ -108,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loading,
     userPlan,
     subscribed,
+    subscriptionEnd,
     signOut,
     checkSubscription,
   };
