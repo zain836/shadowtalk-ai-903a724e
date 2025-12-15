@@ -48,6 +48,10 @@ import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import CognitiveLoadPanel from "@/components/chat/CognitiveLoadPanel";
 import PlanetaryActionPanel from "@/components/chat/PlanetaryActionPanel";
 import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
+import { AdBanner } from "@/components/chat/AdBanner";
+import { AnalyticsDashboard } from "@/components/chat/AnalyticsDashboard";
+import { ScriptAutomation } from "@/components/chat/ScriptAutomation";
+import { useFeatureGating } from "@/hooks/useFeatureGating";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -109,6 +113,11 @@ const ChatbotPage = () => {
   const [isAnalyzingTask, setIsAnalyzingTask] = useState(false);
   const [isLoadingEcoActions, setIsLoadingEcoActions] = useState(false);
   const [isAnalyzingSecurity, setIsAnalyzingSecurity] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showScriptAutomation, setShowScriptAutomation] = useState(false);
+  
+  // Feature gating
+  const { canAccess, checkAccess, getDailyMessageLimit, isProOrHigher, isElite } = useFeatureGating();
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -284,7 +293,19 @@ const ChatbotPage = () => {
     
     if ((!messageToSend.trim() && !attachmentToSend) || isLoading || !currentConversationId) return;
     
+    // Check daily message limit for free users
+    const limit = getDailyMessageLimit();
+    if (limit !== Infinity && dailyChats >= limit) {
+      toast({
+        title: "Daily Limit Reached",
+        description: `Free users are limited to ${limit} messages per day. Upgrade to Pro for unlimited messages!`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (messageToSend.trim().toLowerCase().startsWith('/imagine ')) {
+      if (!checkAccess('imageGeneration')) return;
       setShowImageGenerator(true);
       setMessage(messageToSend.replace(/^\/imagine\s+/i, ''));
       return;
@@ -484,10 +505,7 @@ const ChatbotPage = () => {
   };
 
   const handleTextToSpeech = (text: string, messageId: string) => {
-    if (userPlan !== 'pro') {
-      toast({ title: "Pro Feature", description: "Text-to-speech is available for Pro subscribers only.", variant: "destructive" });
-      return;
-    }
+    if (!checkAccess('textToSpeech')) return;
 
     if (!('speechSynthesis' in window)) {
       toast({ title: "Not supported", description: "Text-to-speech is not supported in your browser.", variant: "destructive" });
@@ -513,10 +531,8 @@ const ChatbotPage = () => {
   };
 
   const handleExportChat = () => {
-    if (userPlan !== 'pro') {
-      toast({ title: "Pro Feature", description: "Chat export is available for Pro subscribers.", variant: "destructive" });
-      return;
-    }
+    if (!checkAccess('chatExport')) return;
+    
     const content = messages.filter(m => m.id !== 'welcome').map(m => 
       `[${m.type.toUpperCase()}] ${m.timestamp.toLocaleString()}\n${m.content}`
     ).join('\n\n---\n\n');
@@ -638,6 +654,9 @@ const ChatbotPage = () => {
 
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0">
+          {/* Ad Banner for Free users */}
+          <AdBanner />
+
           {/* Header */}
           <ChatHeader
             userPlan={userPlan}
@@ -647,6 +666,16 @@ const ChatbotPage = () => {
             onExport={handleExportChat}
             onManageSubscription={handleManageSubscription}
             onSignOut={signOut}
+            onOpenAnalytics={() => {
+              if (checkAccess('analyticsDashboard')) {
+                setShowAnalytics(true);
+              }
+            }}
+            onOpenScriptAutomation={() => {
+              if (checkAccess('scriptAutomation')) {
+                setShowScriptAutomation(true);
+              }
+            }}
             maxChats={maxChats}
             dailyChats={dailyChats}
           />
@@ -825,6 +854,27 @@ const ChatbotPage = () => {
           message={editingMessage.content}
           onSave={(newContent) => handleEditMessage(editingMessage.index, newContent)}
           onCancel={() => setEditingMessage(null)}
+        />
+      )}
+
+      {/* Analytics Dashboard - Elite */}
+      {showAnalytics && (
+        <AnalyticsDashboard
+          onClose={() => setShowAnalytics(false)}
+          messageCount={messages.length}
+          conversationCount={conversations.length}
+        />
+      )}
+
+      {/* Script Automation - Pro+ */}
+      {showScriptAutomation && (
+        <ScriptAutomation
+          onClose={() => setShowScriptAutomation(false)}
+          onRunScript={(prompt) => {
+            setShowScriptAutomation(false);
+            setMessage(prompt);
+            handleSendMessage(prompt);
+          }}
         />
       )}
     </div>
