@@ -51,7 +51,9 @@ import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
 import { AdBanner } from "@/components/chat/AdBanner";
 import { AnalyticsDashboard } from "@/components/chat/AnalyticsDashboard";
 import { ScriptAutomation } from "@/components/chat/ScriptAutomation";
+import { StealthVault } from "@/components/chat/StealthVault";
 import { useFeatureGating } from "@/hooks/useFeatureGating";
+import { useOfflineMode } from "@/hooks/useOfflineMode";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -115,9 +117,13 @@ const ChatbotPage = () => {
   const [isAnalyzingSecurity, setIsAnalyzingSecurity] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showScriptAutomation, setShowScriptAutomation] = useState(false);
+  const [showStealthVault, setShowStealthVault] = useState(false);
   
   // Feature gating
   const { canAccess, checkAccess, getDailyMessageLimit, isProOrHigher, isElite } = useFeatureGating();
+  
+  // Offline mode
+  const { isOffline, isOfflineModeAvailable, getOfflineResponse, cacheConversation } = useOfflineMode();
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -326,6 +332,20 @@ const ChatbotPage = () => {
 
     abortControllerRef.current = new AbortController();
     await saveMessage(messageToSend, 'user');
+
+    // Handle offline mode for Elite users
+    if (isOffline && isOfflineModeAvailable) {
+      const offlineResponse = getOfflineResponse(messageToSend);
+      const aiMessageId = crypto.randomUUID();
+      setMessages(prev => [...prev, { 
+        id: aiMessageId, 
+        type: "ai", 
+        content: offlineResponse, 
+        timestamp: new Date() 
+      }]);
+      setIsLoading(false);
+      return;
+    }
 
     let assistantContent = "";
 
@@ -676,6 +696,11 @@ const ChatbotPage = () => {
                 setShowScriptAutomation(true);
               }
             }}
+            onOpenStealthVault={() => {
+              if (checkAccess('stealthMode')) {
+                setShowStealthVault(true);
+              }
+            }}
             maxChats={maxChats}
             dailyChats={dailyChats}
           />
@@ -875,6 +900,14 @@ const ChatbotPage = () => {
             setMessage(prompt);
             handleSendMessage(prompt);
           }}
+        />
+      )}
+
+      {/* Stealth Vault - Elite */}
+      {showStealthVault && (
+        <StealthVault
+          isOpen={showStealthVault}
+          onClose={() => setShowStealthVault(false)}
         />
       )}
     </div>
