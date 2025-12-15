@@ -2,11 +2,13 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
+type UserPlan = 'free' | 'pro' | 'premium' | 'elite' | 'enterprise';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  userPlan: 'free' | 'pro' | 'elite';
+  userPlan: UserPlan;
   subscribed: boolean;
   subscriptionEnd: string | null;
   signOut: () => Promise<void>;
@@ -27,9 +29,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [userPlan, setUserPlan] = useState<'free' | 'pro' | 'elite'>('free');
+  const [userPlan, setUserPlan] = useState<UserPlan>('free');
   const [subscribed, setSubscribed] = useState(false);
   const [subscriptionEnd, setSubscriptionEnd] = useState<string | null>(null);
+
+  // Stripe product IDs mapped to plan names
+  const PRODUCT_PLANS: Record<string, UserPlan> = {
+    'prod_TZocSSpPddFCH1': 'pro',      // ShadowTalk Pro
+    'prod_TbiuwlUUg3F17C': 'premium',  // ShadowTalk Premium
+    'prod_TbhEVUPSLMSF53': 'elite',    // ShadowTalk Elite
+    'prod_TbivJcOChrAcvq': 'enterprise', // ShadowTalk Enterprise
+  };
 
   // Special email that gets all features free
   const SPECIAL_ACCESS_EMAIL = 'j3451500@gmail.com';
@@ -56,7 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (data?.subscribed) {
         setSubscribed(true);
-        setUserPlan(data.plan || 'pro');
+        // Map product ID to plan name
+        const productId = data.product_id;
+        const plan = productId ? (PRODUCT_PLANS[productId] || 'pro') : 'pro';
+        setUserPlan(plan);
         setSubscriptionEnd(data.subscription_end || null);
       } else {
         setSubscribed(false);

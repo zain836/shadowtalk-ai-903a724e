@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Star, Zap, Crown } from "lucide-react";
+import { Check, Star, Zap, Crown, Rocket, Building2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,13 +11,15 @@ import { useAuth } from "@/components/AuthProvider";
 // Stripe price IDs
 const STRIPE_PRICES = {
   pro: "price_1ScezZInnwEWcho15wMKeOMU", // $9.99/month
+  premium: "price_1SeVSbInnwEWcho1EILyNsK4", // $29.99/month
   elite: "price_1SeTpoInnwEWcho1ETYh5Udy", // $49.99/month
+  enterprise: "price_1SeVTIInnwEWcho1iekRR3MG", // $199.99/month
 };
 
 const PricingSection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, userPlan } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscription = async (planName: string) => {
@@ -26,6 +28,10 @@ const PricingSection = () => {
       return;
     }
 
+    if (planName === "Enterprise") {
+      window.open("mailto:enterprise@shadowtalk.ai?subject=Enterprise%20Plan%20Inquiry", "_blank");
+      return;
+    }
 
     if (!user) {
       toast({
@@ -40,7 +46,7 @@ const PricingSection = () => {
     setLoading(planName);
 
     try {
-      const priceId = planName === "Pro" ? STRIPE_PRICES.pro : STRIPE_PRICES.elite;
+      const priceId = STRIPE_PRICES[planName.toLowerCase() as keyof typeof STRIPE_PRICES];
       
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -82,57 +88,81 @@ const PricingSection = () => {
       name: "Free",
       price: "$0",
       period: "",
-      description: "Perfect for trying our revolutionary AI",
+      description: "Try our revolutionary AI capabilities",
       icon: Zap,
       popular: false,
+      highlight: false,
       features: [
-        "50 chat messages per day",
-        "Basic AI responses",
+        "50 queries per day",
+        "Basic legal/financial info",
+        "Simple document checklists",
+        "Basic translation (10 languages)",
         "Community support",
-        "Standard response time"
       ],
       limitations: [
-        "🔒 No code generation",
-        "🔒 No script automation",
-        "🔒 No offline mode",
-        "🔒 No chat export",
-        "Contains ads"
+        "🔒 No Proactive Context Engine (PCE)",
+        "🔒 No Multi-Step Workflow Executor",
+        "🔒 No cross-jurisdictional comparisons",
+        "Contains ads",
       ],
       cta: "Start Free",
       variant: "outline",
-      urgency: false
     },
     {
       name: "Pro",
       price: "$9.99",
       period: "/month",
-      description: "Unlock AI superpowers for creators",
+      description: "Perfect for freelancers & small businesses",
       icon: Star,
-      popular: true,
+      popular: false,
+      highlight: false,
       features: [
-        "Unlimited messages & chat history",
-        "Advanced code generation",
-        "Script automation engine",
-        "Save & export everything",
-        "Priority support (< 2h)",
+        "Unlimited queries",
+        "Full Universal Regulation Mapping (URM)",
+        "Cross-jurisdictional comparisons",
+        "Code generation & debugging",
+        "Chat export & history",
+        "Priority support (< 4h)",
         "No advertisements",
-        "Dark mode & themes",
-        "Real-time collaboration"
+        "100+ language translation",
       ],
       limitations: [],
       cta: "Upgrade to Pro",
       variant: "default",
-      urgency: false
+    },
+    {
+      name: "Premium",
+      price: "$29.99",
+      period: "/month",
+      description: "For serious professionals & agencies",
+      icon: Rocket,
+      popular: true,
+      highlight: true,
+      features: [
+        "Everything in Pro +",
+        "🔥 Proactive Context Engine (PCE)",
+        "🔥 Multi-Step Workflow Executor (MWE)",
+        "Guided application walkthroughs",
+        "Tax break & benefit recommendations",
+        "Life event proactive suggestions",
+        "Document generation (contracts, NDAs)",
+        "Real-time collaboration",
+        "Priority support (< 2h)",
+      ],
+      limitations: [],
+      cta: "Go Premium",
+      variant: "default",
     },
     {
       name: "Elite",
       price: "$49.99",
       period: "/month",
-      description: "For power users who demand everything",
+      description: "Power users who demand everything",
       icon: Crown,
       popular: false,
+      highlight: false,
       features: [
-        "Everything in Pro +",
+        "Everything in Premium +",
         "🔥 Offline mode (works anywhere)",
         "Stealth mode & encrypted vault",
         "AI agents & workflow automation",
@@ -140,14 +170,44 @@ const PricingSection = () => {
         "White-label solutions",
         "24/7 phone support",
         "Early beta access",
-        "Advanced analytics dashboard"
+        "Advanced analytics dashboard",
       ],
       limitations: [],
       cta: "Go Elite",
       variant: "secondary",
-      urgency: false
+    },
+    {
+      name: "Enterprise",
+      price: "$199.99",
+      period: "/month",
+      description: "For teams, firms & organizations",
+      icon: Building2,
+      popular: false,
+      highlight: false,
+      features: [
+        "Everything in Elite +",
+        "🏢 API access for integrations",
+        "Custom knowledge base integration",
+        "Team management & SSO",
+        "Dedicated account manager",
+        "SLA guarantees (99.9% uptime)",
+        "Custom compliance modules",
+        "Volume discounts",
+        "On-premise deployment options",
+      ],
+      limitations: [],
+      cta: "Contact Sales",
+      variant: "outline",
     },
   ];
+
+  const getCurrentPlanBadge = (planName: string) => {
+    const planLower = planName.toLowerCase();
+    if (userPlan === planLower) {
+      return <Badge className="absolute -top-3 right-4 bg-success text-success-foreground">Your Plan</Badge>;
+    }
+    return null;
+  };
 
   return (
     <section id="pricing" className="py-24 bg-muted/20">
@@ -156,25 +216,36 @@ const PricingSection = () => {
         <div className="text-center mb-16">
           <div className="inline-flex items-center space-x-2 bg-card/50 border border-border rounded-full px-4 py-2 mb-6">
             <Star className="h-4 w-4 text-primary" />
-            <span className="text-sm text-muted-foreground">Simple Pricing</span>
+            <span className="text-sm text-muted-foreground">Value-Driven Pricing</span>
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6">
-            Choose Your{" "}
-            <span className="gradient-text">Perfect Plan</span>
+            Invest in Your{" "}
+            <span className="gradient-text">Success</span>
           </h2>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-            Start free and upgrade when you're ready. No hidden fees, cancel anytime.
+          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
+            Navigate legal, financial & regulatory complexity with AI that pays for itself. Start free, scale as you grow.
           </p>
+          
+          {/* Referral Banner */}
+          <div className="inline-flex items-center space-x-2 bg-gradient-to-r from-primary/10 to-secondary/10 border border-primary/20 rounded-xl px-6 py-3">
+            <Gift className="h-5 w-5 text-primary" />
+            <span className="text-sm">
+              <span className="font-semibold text-primary">Earn 20% commission</span> on every referral! 
+              <Button variant="link" className="text-primary p-0 ml-1 h-auto" onClick={() => navigate('/profile')}>
+                Get your referral link →
+              </Button>
+            </span>
+          </div>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 max-w-7xl mx-auto">
           {plans.map((plan, index) => (
             <Card
               key={index}
               className={`relative card-hover ${
-                plan.popular
-                  ? 'ring-2 ring-primary shadow-glow scale-105'
+                plan.highlight
+                  ? 'ring-2 ring-primary shadow-glow lg:scale-105'
                   : ''
               }`}
             >
@@ -183,67 +254,124 @@ const PricingSection = () => {
                   Most Popular
                 </Badge>
               )}
+              {getCurrentPlanBadge(plan.name)}
 
               <CardHeader className="text-center pb-4">
                 <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-primary mb-4 mx-auto`}>
                   <plan.icon className="h-6 w-6 text-primary-foreground" />
                 </div>
                 <h3 className="text-xl font-bold">{plan.name}</h3>
-                <p className="text-sm text-muted-foreground">{plan.description}</p>
+                <p className="text-xs text-muted-foreground">{plan.description}</p>
               </CardHeader>
 
               <CardContent className="pt-0">
                 {/* Price */}
                 <div className="text-center mb-6">
-                  {plan.price !== null ? (
-                    <div className="flex items-baseline justify-center">
-                      <span className="text-4xl font-bold gradient-text">{plan.price}</span>
-                      <span className="text-muted-foreground ml-1">{plan.period}</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-center">
-                      <span className="text-2xl font-bold text-muted-foreground">Custom Pricing</span>
-                    </div>
-                  )}
+                  <div className="flex items-baseline justify-center">
+                    <span className="text-3xl font-bold gradient-text">{plan.price}</span>
+                    <span className="text-muted-foreground ml-1 text-sm">{plan.period}</span>
+                  </div>
                 </div>
 
                 {/* Features */}
-                <div className="space-y-3 mb-6">
-                  {plan.features.map((feature, featureIndex) => (
-                    <div key={featureIndex} className="flex items-start space-x-3">
+                <div className="space-y-2 mb-6">
+                  {plan.features.slice(0, 6).map((feature, featureIndex) => (
+                    <div key={featureIndex} className="flex items-start space-x-2">
                       <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
-                      <span className="text-sm">{feature}</span>
+                      <span className="text-xs">{feature}</span>
                     </div>
                   ))}
+                  {plan.features.length > 6 && (
+                    <div className="text-xs text-muted-foreground text-center">
+                      +{plan.features.length - 6} more features
+                    </div>
+                  )}
                   {plan.limitations.map((limitation, limitIndex) => (
-                    <div key={limitIndex} className="flex items-start space-x-3">
+                    <div key={limitIndex} className="flex items-start space-x-2">
                       <div className="w-4 h-4 mt-0.5 flex-shrink-0">
                         <div className="w-2 h-2 bg-muted-foreground rounded-full mx-auto mt-1"></div>
                       </div>
-                      <span className="text-sm text-muted-foreground">{limitation}</span>
+                      <span className="text-xs text-muted-foreground">{limitation}</span>
                     </div>
                   ))}
                 </div>
 
                 {/* CTA */}
                 <Button
-                  className={`w-full ${plan.popular ? 'btn-glow' : ''}`}
+                  className={`w-full ${plan.highlight ? 'btn-glow' : ''}`}
                   variant={plan.variant as any}
-                  size="lg"
+                  size="sm"
                   onClick={() => handleSubscription(plan.name)}
-                  disabled={loading === plan.name}
+                  disabled={loading === plan.name || userPlan === plan.name.toLowerCase()}
                 >
-                  {loading === plan.name ? 'Processing...' : plan.cta}
+                  {loading === plan.name ? 'Processing...' : 
+                   userPlan === plan.name.toLowerCase() ? 'Current Plan' : plan.cta}
                 </Button>
               </CardContent>
             </Card>
           ))}
         </div>
 
+        {/* Pay Per Solution Section */}
+        <div className="mt-20 max-w-4xl mx-auto">
+          <div className="text-center mb-10">
+            <h3 className="text-2xl font-bold mb-4">
+              💼 Pay-Per-Solution Options
+            </h3>
+            <p className="text-muted-foreground">
+              Need a one-time solution? Get exactly what you need without a subscription.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <div className="text-2xl mb-2">📄</div>
+                <h4 className="font-semibold mb-2">Document Generation</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Contracts, NDAs, business forms
+                </p>
+                <div className="text-2xl font-bold gradient-text mb-4">$5-$50</div>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/chatbot')}>
+                  Generate Document
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <div className="text-2xl mb-2">🔍</div>
+                <h4 className="font-semibold mb-2">Document Review</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Contract analysis & risk assessment
+                </p>
+                <div className="text-2xl font-bold gradient-text mb-4">$10-$75</div>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/chatbot')}>
+                  Review Document
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="card-hover">
+              <CardContent className="pt-6 text-center">
+                <div className="text-2xl mb-2">🌍</div>
+                <h4 className="font-semibold mb-2">Complex Workflow Report</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Multi-jurisdictional guidance
+                </p>
+                <div className="text-2xl font-bold gradient-text mb-4">$50-$200</div>
+                <Button variant="outline" size="sm" className="w-full" onClick={() => navigate('/chatbot')}>
+                  Get Report
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
         {/* Additional Info */}
         <div className="text-center mt-12">
           <p className="text-muted-foreground mb-4">
-            All plans include 30-day money-back guarantee • Cancel anytime
+            All plans include 30-day money-back guarantee • Cancel anytime • Secure payment via Stripe
           </p>
           <div className="flex flex-wrap justify-center items-center gap-6 text-sm text-muted-foreground">
             <span className="flex items-center space-x-2">
@@ -252,11 +380,15 @@ const PricingSection = () => {
             </span>
             <span className="flex items-center space-x-2">
               <Check className="h-4 w-4 text-success" />
-              <span>Secure payment</span>
+              <span>Instant activation</span>
             </span>
             <span className="flex items-center space-x-2">
               <Check className="h-4 w-4 text-success" />
-              <span>Instant activation</span>
+              <span>SOC 2 compliant</span>
+            </span>
+            <span className="flex items-center space-x-2">
+              <Check className="h-4 w-4 text-success" />
+              <span>GDPR ready</span>
             </span>
           </div>
         </div>
