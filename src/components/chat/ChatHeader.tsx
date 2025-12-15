@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,8 @@ interface ChatHeaderProps {
   onOpenScriptAutomation: () => void;
   onOpenStealthVault: () => void;
   onOpenAgentWorkflows: () => void;
+  onOpenModelFineTuning: () => void;
+  onOpenWhiteLabelBranding: () => void;
   maxChats: string;
   dailyChats: number;
 }
@@ -78,6 +80,8 @@ export const ChatHeader = ({
   onOpenScriptAutomation,
   onOpenStealthVault,
   onOpenAgentWorkflows,
+  onOpenModelFineTuning,
+  onOpenWhiteLabelBranding,
   maxChats,
   dailyChats,
 }: ChatHeaderProps) => {
@@ -154,6 +158,42 @@ export const ChatHeader = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 ml-1">
+          {/* Model Fine-Tuning - Elite */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenModelFineTuning}
+                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
+                >
+                  <Brain className="h-4 w-4" />
+                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isElite ? 'Model Fine-Tuning' : 'Elite feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {/* White-Label Branding - Elite */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenWhiteLabelBranding}
+                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
+                >
+                  <Palette className="h-4 w-4" />
+                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isElite ? 'White-Label Branding' : 'Elite feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* AI Agent Workflows - Elite */}
           <TooltipProvider>
             <Tooltip>

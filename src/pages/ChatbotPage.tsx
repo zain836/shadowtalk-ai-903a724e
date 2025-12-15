@@ -16,6 +16,8 @@ import { AnalyticsDashboard } from "@/components/chat/AnalyticsDashboard";
 import { ScriptAutomation } from "@/components/chat/ScriptAutomation";
 import { StealthVault } from "@/components/chat/StealthVault";
 import { AIAgentWorkflows } from "@/components/chat/AIAgentWorkflows";
+import { ModelFineTuning } from "@/components/chat/ModelFineTuning";
+import { WhiteLabelBranding } from "@/components/chat/WhiteLabelBranding";
 import CognitiveLoadPanel from "@/components/chat/CognitiveLoadPanel";
 import PlanetaryActionPanel from "@/components/chat/PlanetaryActionPanel";
 import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
@@ -91,6 +93,8 @@ const ChatbotPage = () => {
   const [showScriptAutomation, setShowScriptAutomation] = useState(false);
   const [showStealthVault, setShowStealthVault] = useState(false);
   const [showAgentWorkflows, setShowAgentWorkflows] = useState(false);
+  const [showModelFineTuning, setShowModelFineTuning] = useState(false);
+  const [showWhiteLabelBranding, setShowWhiteLabelBranding] = useState(false);
   const [codeCanvas, setCodeCanvas] = useState<{ code: string; language: string } | null>(null);
   const [editingMessage, setEditingMessage] = useState<{ index: number; content: string } | null>(null);
   
@@ -428,6 +432,8 @@ const ChatbotPage = () => {
             onOpenScriptAutomation={() => checkAccess('scriptAutomation') && setShowScriptAutomation(true)}
             onOpenStealthVault={() => checkAccess('stealthMode') && setShowStealthVault(true)}
             onOpenAgentWorkflows={() => checkAccess('aiAgents') && setShowAgentWorkflows(true)}
+            onOpenModelFineTuning={() => checkAccess('modelFineTuning') && setShowModelFineTuning(true)}
+            onOpenWhiteLabelBranding={() => checkAccess('whiteLabelBranding') && setShowWhiteLabelBranding(true)}
             maxChats={maxChats}
             dailyChats={dailyChats}
           />
@@ -495,6 +501,8 @@ const ChatbotPage = () => {
       {showScriptAutomation && <ScriptAutomation onClose={() => setShowScriptAutomation(false)} onRunScript={(p) => { setShowScriptAutomation(false); handleSendMessage(p); }} />}
       {showStealthVault && <StealthVault isOpen={showStealthVault} onClose={() => setShowStealthVault(false)} />}
       {showAgentWorkflows && <AIAgentWorkflows isOpen={showAgentWorkflows} onClose={() => setShowAgentWorkflows(false)} onResult={(r) => { setShowAgentWorkflows(false); setMessages(prev => [...prev, { id: crypto.randomUUID(), type: 'ai', content: r, timestamp: new Date() }]); }} />}
+      {showModelFineTuning && <ModelFineTuning onClose={() => setShowModelFineTuning(false)} />}
+      {showWhiteLabelBranding && <WhiteLabelBranding onClose={() => setShowWhiteLabelBranding(false)} />}
     </div>
   );
 };
