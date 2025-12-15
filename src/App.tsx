@@ -17,6 +17,7 @@ import CollaborativeRoom from "./pages/CollaborativeRoom";
 import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import PWABanner from "./components/PWABanner";
+import CookieConsent from "./components/CookieConsent";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
             <PWABanner />
+            <CookieConsent />
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>

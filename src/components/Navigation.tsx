@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History } from "lucide-react";
+import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
@@ -13,6 +13,7 @@ const Navigation = () => {
     { name: "Docs", href: "/docs", icon: BookOpen, isLink: true },
     { name: "Changelog", href: "/changelog", icon: History, isLink: true },
     { name: "Rooms", href: "/rooms", icon: Users, isLink: true },
+    { name: "Profile", href: "/profile", icon: User, isLink: true },
   ];
 
   const handleNavClick = (item: typeof navItems[0]) => {
