@@ -56,6 +56,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const checkAndAssignAdminRole = async () => {
+    if (!session) return;
+    
+    try {
+      await supabase.functions.invoke('assign-admin-role');
+    } catch (error) {
+      // Silent fail - not critical
+      console.error('Error checking admin role:', error);
+    }
+  };
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -63,7 +74,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          setTimeout(() => checkSubscription(), 100);
+          setTimeout(() => {
+            checkSubscription();
+            checkAndAssignAdminRole();
+          }, 100);
         } else {
           setUserPlan('free');
           setSubscribed(false);
@@ -79,7 +93,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setTimeout(() => checkSubscription(), 100);
+        setTimeout(() => {
+          checkSubscription();
+          checkAndAssignAdminRole();
+        }, 100);
       }
 
       setLoading(false);
