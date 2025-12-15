@@ -385,6 +385,42 @@ export type Database = {
           },
         ]
       }
+      stealth_vault: {
+        Row: {
+          category: string | null
+          content_encrypted: string
+          created_at: string
+          id: string
+          iv: string
+          salt: string
+          title_encrypted: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          content_encrypted: string
+          created_at?: string
+          id?: string
+          iv: string
+          salt: string
+          title_encrypted: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          content_encrypted?: string
+          created_at?: string
+          id?: string
+          iv?: string
+          salt?: string
+          title_encrypted?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
