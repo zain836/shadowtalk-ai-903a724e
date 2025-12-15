@@ -24,6 +24,7 @@ import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
 import { useFeatureGating } from "@/hooks/useFeatureGating";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useUsageTracking } from "@/hooks/useUsageTracking";
 
 // Types
 interface SpeechRecognitionEvent extends Event {
@@ -107,6 +108,7 @@ const ChatbotPage = () => {
   const { canAccess, checkAccess, getDailyMessageLimit, isProOrHigher, isElite } = useFeatureGating();
   const { isOffline, isOfflineModeAvailable, getOfflineResponse } = useOfflineMode();
   const { requestPermission } = usePushNotifications();
+  const { trackChatMessage, trackImageGeneration, trackVoiceInput, trackTextToSpeech, trackCodeExecution, trackFileUpload, trackModeSwitch, trackConversationCreated } = useUsageTracking();
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -201,6 +203,7 @@ const ChatbotPage = () => {
       setConversations(prev => [data, ...prev]);
       setCurrentConversationId(data.id);
       setMessages([{ id: 'welcome', type: 'ai', content: getWelcomeMessage(), timestamp: new Date() }]);
+      trackConversationCreated();
     }
   };
 
@@ -270,6 +273,15 @@ const ChatbotPage = () => {
     setSelectedFile(null);
     setDailyChats(prev => prev + 1);
     setIsLoading(true);
+
+    // Track the chat message
+    trackChatMessage(
+      chatMode as 'general' | 'code' | 'translate' | 'summarize' | 'debug' | 'brainstorm' | 'image' | 'explain' | 'creative' | 'music',
+      personality,
+      messageToSend.length,
+      !!attachmentToSend,
+      attachmentToSend?.mimeType
+    );
 
     abortControllerRef.current = new AbortController();
     await saveMessage(messageToSend, 'user');
@@ -373,7 +385,7 @@ const ChatbotPage = () => {
     recognition.continuous = true;
     recognition.interimResults = true;
     recognition.lang = 'en-US';
-    recognition.onstart = () => { setIsListening(true); toast({ title: "Listening...", description: "Speak now." }); };
+    recognition.onstart = () => { setIsListening(true); toast({ title: "Listening...", description: "Speak now." }); trackVoiceInput(); };
     recognition.onresult = (event: SpeechRecognitionEvent) => setMessage(Array.from(event.results).map(r => r[0].transcript).join(''));
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => { setIsListening(false); if (event.error !== 'aborted') toast({ title: "Voice error", description: event.error, variant: "destructive" }); };
     recognition.onend = () => setIsListening(false);
@@ -387,7 +399,7 @@ const ChatbotPage = () => {
     if (speakingMessageId === messageId && isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); setSpeakingMessageId(null); return; }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.replace(/[#*`]/g, '').replace(/\n+/g, ' '));
-    utterance.onstart = () => { setIsSpeaking(true); setSpeakingMessageId(messageId); };
+    utterance.onstart = () => { setIsSpeaking(true); setSpeakingMessageId(messageId); trackTextToSpeech(); };
     utterance.onend = () => { setIsSpeaking(false); setSpeakingMessageId(null); };
     window.speechSynthesis.speak(utterance);
   };
@@ -479,9 +491,9 @@ const ChatbotPage = () => {
             onOpenImageGenerator={() => setShowImageGenerator(true)}
             onStopGeneration={stopGeneration}
             selectedFile={selectedFile}
-            onFileSelect={setSelectedFile}
+            onFileSelect={(file) => { setSelectedFile(file); if (file) trackFileUpload(file.mimeType); }}
             chatMode={chatMode}
-            onModeChange={setChatMode}
+            onModeChange={(mode) => { setChatMode(mode); trackModeSwitch(mode); }}
             personality={personality}
           />
         </div>
@@ -493,6 +505,7 @@ const ChatbotPage = () => {
           onClose={() => setShowImageGenerator(false)}
           onImageGenerated={(content, prompt) => {
             setShowImageGenerator(false);
+            trackImageGeneration(prompt);
             setMessages(prev => [...prev, 
               { id: crypto.randomUUID(), type: 'user', content: `/imagine ${prompt}`, timestamp: new Date() },
               { id: crypto.randomUUID(), type: 'ai', content: `🎨 **Image Generation**\n\n${content}`, timestamp: new Date() }
@@ -501,7 +514,7 @@ const ChatbotPage = () => {
         />
       )}
 
-      {codeCanvas && <CodeCanvas code={codeCanvas.code} language={codeCanvas.language} onClose={() => setCodeCanvas(null)} />}
+      {codeCanvas && <CodeCanvas code={codeCanvas.code} language={codeCanvas.language} onClose={() => { trackCodeExecution(codeCanvas.language); setCodeCanvas(null); }} />}
       {editingMessage && <EditMessageDialog message={editingMessage.content} onSave={(c) => handleEditMessage(editingMessage.index, c)} onCancel={() => setEditingMessage(null)} />}
       {showAnalytics && <AnalyticsDashboard onClose={() => setShowAnalytics(false)} messageCount={messages.length} conversationCount={conversations.length} />}
       {showScriptAutomation && <ScriptAutomation onClose={() => setShowScriptAutomation(false)} onRunScript={(p) => { setShowScriptAutomation(false); handleSendMessage(p); }} />}
