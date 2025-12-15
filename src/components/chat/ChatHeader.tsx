@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, WifiOff } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Heart, Laugh, Briefcase, Sparkles } from "lucide-react";
 import { OfflineModeIndicator } from "./OfflineModeIndicator";
 
@@ -33,6 +39,7 @@ interface ChatHeaderProps {
   onOpenAnalytics: () => void;
   onOpenScriptAutomation: () => void;
   onOpenStealthVault: () => void;
+  onOpenAgentWorkflows: () => void;
   maxChats: string;
   dailyChats: number;
 }
@@ -40,11 +47,11 @@ interface ChatHeaderProps {
 const getPlanBadgeStyle = (plan: UserPlan) => {
   switch (plan) {
     case 'elite':
-      return 'bg-amber-500/20 text-amber-500 border-amber-500/30';
+      return 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30';
     case 'pro':
-      return 'bg-primary/20 text-primary border-primary/30';
+      return 'bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30';
     default:
-      return 'bg-muted text-muted-foreground';
+      return 'bg-muted text-muted-foreground border-border';
   }
 };
 
@@ -70,6 +77,7 @@ export const ChatHeader = ({
   onOpenAnalytics,
   onOpenScriptAutomation,
   onOpenStealthVault,
+  onOpenAgentWorkflows,
   maxChats,
   dailyChats,
 }: ChatHeaderProps) => {
@@ -78,18 +86,39 @@ export const ChatHeader = ({
   const isElite = userPlan === 'elite';
 
   return (
-    <div className="flex items-center justify-between p-3 border-b border-border bg-card/30 backdrop-blur-sm">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border/50 bg-card/50 backdrop-blur-sm">
       {/* Left Section */}
-      <div className="flex items-center gap-2">
-        <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="h-8 w-8">
-          <MessageSquare className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-8 w-8">
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div className="flex items-center gap-2">
-          <Bot className="h-6 w-6 text-primary" />
-          <h1 className="text-lg font-bold gradient-text hidden sm:block">ShadowTalk AI</h1>
+      <div className="flex items-center gap-3">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={onToggleSidebar} className="h-9 w-9 rounded-xl">
+                <MessageSquare className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Toggle sidebar</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="h-9 w-9 rounded-xl">
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Back to home</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-sm">
+            <Bot className="h-5 w-5 text-primary-foreground" />
+          </div>
+          <div className="hidden sm:block">
+            <h1 className="text-sm font-semibold">ShadowTalk AI</h1>
+            <p className="text-xs text-muted-foreground">Powered by Gemini</p>
+          </div>
         </div>
       </div>
 
@@ -97,7 +126,7 @@ export const ChatHeader = ({
       <div className="flex items-center gap-2">
         {/* Personality Selector */}
         <Select value={personality} onValueChange={(v) => onPersonalityChange(v as Personality)}>
-          <SelectTrigger className="w-28 h-8 text-xs">
+          <SelectTrigger className="w-[120px] h-9 text-xs rounded-xl border-border/50">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -113,73 +142,134 @@ export const ChatHeader = ({
         </Select>
 
         {/* Plan Badge */}
-        <Badge className={`hidden sm:flex gap-1 ${getPlanBadgeStyle(userPlan)}`}>
+        <Badge className={`hidden md:flex gap-1.5 px-3 py-1 rounded-xl border ${getPlanBadgeStyle(userPlan)}`}>
           {getPlanIcon(userPlan)}
-          {userPlan.charAt(0).toUpperCase() + userPlan.slice(1)} • {isProOrHigher ? '∞' : `${dailyChats}/${maxChats}`}
+          <span className="capitalize">{userPlan}</span>
+          <span className="text-muted-foreground">•</span>
+          <span>{isProOrHigher ? '∞' : `${dailyChats}/${maxChats}`}</span>
         </Badge>
 
-        {/* Offline Mode Indicator - Elite only */}
+        {/* Offline Mode Indicator */}
         <OfflineModeIndicator />
 
-        {/* Stealth Vault - Elite only */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onOpenStealthVault}
-          className={`h-8 w-8 relative ${!isElite ? 'opacity-50' : ''}`}
-          title={isElite ? 'Stealth Mode & Vault' : 'Elite feature'}
-        >
-          <Shield className="h-4 w-4" />
-          {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-        </Button>
+        {/* Action Buttons */}
+        <div className="flex items-center gap-1 ml-1">
+          {/* AI Agent Workflows - Elite */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenAgentWorkflows}
+                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
+                >
+                  <Zap className="h-4 w-4" />
+                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isElite ? 'AI Agent Workflows' : 'Elite feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Script Automation - Pro+ */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onOpenScriptAutomation}
-          className={`h-8 w-8 relative ${!isProOrHigher ? 'opacity-50' : ''}`}
-          title={isProOrHigher ? 'Script Automation' : 'Pro feature'}
-        >
-          <Workflow className="h-4 w-4" />
-          {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-        </Button>
+          {/* Stealth Vault - Elite */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenStealthVault}
+                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
+                >
+                  <Shield className="h-4 w-4" />
+                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isElite ? 'Stealth Vault' : 'Elite feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Analytics - Elite only */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onOpenAnalytics}
-          className={`h-8 w-8 relative ${!isElite ? 'opacity-50' : ''}`}
-          title={isElite ? 'Analytics Dashboard' : 'Elite feature'}
-        >
-          <BarChart3 className="h-4 w-4" />
-          {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-        </Button>
+          {/* Script Automation - Pro+ */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenScriptAutomation}
+                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
+                >
+                  <Workflow className="h-4 w-4" />
+                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isProOrHigher ? 'Script Automation' : 'Pro feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Export Button - Pro+ */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onExport}
-          className={`h-8 w-8 relative ${!isProOrHigher ? 'opacity-50' : ''}`}
-          title={isProOrHigher ? 'Export chat' : 'Pro feature'}
-        >
-          <Download className="h-4 w-4" />
-          {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
-        </Button>
+          {/* Analytics - Elite */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onOpenAnalytics}
+                  className={`h-9 w-9 rounded-xl relative ${!isElite ? 'opacity-50' : ''}`}
+                >
+                  <BarChart3 className="h-4 w-4" />
+                  {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isElite ? 'Analytics' : 'Elite feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Settings (Pro+) */}
-        {isProOrHigher && (
-          <Button variant="ghost" size="icon" onClick={onManageSubscription} className="h-8 w-8">
-            <Settings className="h-4 w-4" />
-          </Button>
-        )}
+          {/* Export - Pro+ */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onExport}
+                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
+                >
+                  <Download className="h-4 w-4" />
+                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isProOrHigher ? 'Export chat' : 'Pro feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Sign Out */}
-        <Button variant="ghost" size="icon" onClick={onSignOut} className="h-8 w-8">
-          <LogOut className="h-4 w-4" />
-        </Button>
+          {/* Settings */}
+          {isProOrHigher && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onManageSubscription} className="h-9 w-9 rounded-xl">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Manage subscription</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+
+          {/* Sign Out */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={onSignOut} className="h-9 w-9 rounded-xl">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Sign out</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
     </div>
   );
