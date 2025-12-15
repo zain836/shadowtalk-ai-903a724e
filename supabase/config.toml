@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.assign-admin-role]
 verify_jwt = false
+
+[functions.send-feedback-notification]
+verify_jwt = false
