@@ -35,6 +35,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
+import { FeedbackAnalytics } from '@/components/FeedbackAnalytics';
 
 interface UserData {
   id: string;
@@ -398,6 +399,11 @@ const AdminPage = () => {
           </TabsList>
 
           <TabsContent value="feedback">
+            {/* Analytics Charts */}
+            {!loadingData && feedback.length > 0 && (
+              <FeedbackAnalytics feedback={feedback} />
+            )}
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">

@@ -62,15 +62,31 @@ export const FeedbackForm = () => {
 
     setLoading(true);
     try {
-      const { error } = await supabase.from("feedback").insert({
+      const { data, error } = await supabase.from("feedback").insert({
         user_id: user?.id || null,
         email: user?.email || formData.email || null,
         category: formData.category,
         rating: formData.rating,
         message: formData.message.trim(),
-      });
+      }).select().single();
 
       if (error) throw error;
+
+      // Send email notification
+      try {
+        await supabase.functions.invoke('send-feedback-notification', {
+          body: {
+            feedbackId: data.id,
+            category: formData.category,
+            rating: formData.rating,
+            message: formData.message.trim(),
+            userEmail: user?.email || formData.email || null,
+          }
+        });
+      } catch (emailError) {
+        console.error("Failed to send email notification:", emailError);
+        // Don't fail the submission if email fails
+      }
 
       toast.success("Thank you for your feedback!");
       setFormData({ email: "", category: "general", rating: 0, message: "" });
