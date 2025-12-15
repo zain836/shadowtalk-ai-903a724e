@@ -32,7 +32,11 @@ import {
   Eye,
   FileWarning,
   Terminal,
-  RefreshCw
+  RefreshCw,
+  Upload,
+  FolderUp,
+  File,
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -65,25 +69,83 @@ const SecurityAuditPanel: React.FC<SecurityAuditPanelProps> = ({
   const [showDisclaimer, setShowDisclaimer] = useState(true);
   const [hasAccepted, setHasAccepted] = useState(false);
   const [codeInput, setCodeInput] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<{name: string; content: string; size: number}[]>([]);
   const [vulnerabilities, setVulnerabilities] = useState<Vulnerability[]>([]);
   const [summary, setSummary] = useState('');
   const [riskScore, setRiskScore] = useState(0);
   const [selectedVuln, setSelectedVuln] = useState<Vulnerability | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
+  const [isDragging, setIsDragging] = useState(false);
   const handleAcceptDisclaimer = () => {
     setHasAccepted(true);
     setShowDisclaimer(false);
   };
 
+  const handleFileUpload = async (files: FileList) => {
+    const validExtensions = ['.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.go', '.rb', '.php', '.sql', '.html', '.css', '.json', '.yaml', '.yml', '.xml', '.sh', '.bash', '.c', '.cpp', '.h', '.cs', '.rs', '.swift', '.kt', '.vue', '.svelte'];
+    const newFiles: {name: string; content: string; size: number}[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
+      
+      if (!validExtensions.includes(ext)) {
+        toast.warning(`Skipped ${file.name}: unsupported file type`);
+        continue;
+      }
+
+      if (file.size > 500000) {
+        toast.warning(`Skipped ${file.name}: file too large (max 500KB)`);
+        continue;
+      }
+
+      try {
+        const content = await file.text();
+        newFiles.push({ name: file.name, content, size: file.size });
+      } catch (error) {
+        toast.error(`Failed to read ${file.name}`);
+      }
+    }
+
+    if (newFiles.length > 0) {
+      setUploadedFiles(prev => [...prev, ...newFiles]);
+      toast.success(`Added ${newFiles.length} file(s) for analysis`);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files) {
+      handleFileUpload(e.dataTransfer.files);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const removeFile = (index: number) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleAnalyze = async () => {
-    if (!codeInput.trim()) {
-      toast.error('Please paste code to analyze');
+    const combinedCode = uploadedFiles.length > 0 
+      ? uploadedFiles.map(f => `// === File: ${f.name} ===\n${f.content}`).join('\n\n')
+      : codeInput;
+
+    if (!combinedCode.trim()) {
+      toast.error('Please paste code or upload files to analyze');
       return;
     }
 
     try {
-      const result = await onAnalyze(codeInput);
+      const result = await onAnalyze(combinedCode);
       setVulnerabilities(result.vulnerabilities);
       setSummary(result.summary);
       setRiskScore(result.riskScore);
@@ -232,31 +294,105 @@ const SecurityAuditPanel: React.FC<SecurityAuditPanelProps> = ({
           </div>
         )}
 
-        {/* Code Input */}
+        {/* File Upload & Code Input */}
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2">
               <FileCode className="h-4 w-4" />
-              Paste Code to Analyze
+              Upload Codebase or Paste Code
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Textarea
-              placeholder="Paste your code here... (supports JavaScript, TypeScript, Python, SQL, and more)"
-              value={codeInput}
-              onChange={(e) => setCodeInput(e.target.value)}
-              className="min-h-[150px] font-mono text-sm"
-            />
+            {/* Drag and Drop Zone */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                isDragging 
+                  ? 'border-primary bg-primary/10' 
+                  : 'border-border hover:border-primary/50'
+              }`}
+            >
+              <input
+                type="file"
+                id="file-upload"
+                multiple
+                accept=".js,.jsx,.ts,.tsx,.py,.java,.go,.rb,.php,.sql,.html,.css,.json,.yaml,.yml,.xml,.sh,.c,.cpp,.h,.cs,.rs,.swift,.kt,.vue,.svelte"
+                onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                className="hidden"
+              />
+              <label htmlFor="file-upload" className="cursor-pointer">
+                <div className="flex flex-col items-center gap-2">
+                  <FolderUp className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-primary">Click to upload</span> or drag and drop
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Supports JS, TS, Python, Java, Go, SQL, and more
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            {/* Uploaded Files List */}
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Uploaded Files ({uploadedFiles.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {uploadedFiles.map((file, index) => (
+                    <Badge
+                      key={index}
+                      variant="secondary"
+                      className="flex items-center gap-1 pr-1"
+                    >
+                      <File className="h-3 w-3" />
+                      <span className="max-w-[120px] truncate">{file.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        ({(file.size / 1024).toFixed(1)}KB)
+                      </span>
+                      <button
+                        onClick={() => removeFile(index)}
+                        className="ml-1 hover:bg-destructive/20 rounded p-0.5"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Or Separator */}
+            {uploadedFiles.length === 0 && (
+              <>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 h-px bg-border" />
+                  <span className="text-xs text-muted-foreground">OR</span>
+                  <div className="flex-1 h-px bg-border" />
+                </div>
+
+                <Textarea
+                  placeholder="Paste your code here... (supports JavaScript, TypeScript, Python, SQL, and more)"
+                  value={codeInput}
+                  onChange={(e) => setCodeInput(e.target.value)}
+                  className="min-h-[120px] font-mono text-sm"
+                />
+              </>
+            )}
+
             <div className="flex gap-2">
               <Button 
                 onClick={handleAnalyze} 
-                disabled={isAnalyzing || !codeInput.trim()}
+                disabled={isAnalyzing || (!codeInput.trim() && uploadedFiles.length === 0)}
                 className="flex-1"
               >
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing Security...
+                    Analyzing {uploadedFiles.length > 0 ? `${uploadedFiles.length} file(s)` : 'code'}...
                   </>
                 ) : (
                   <>
@@ -265,12 +401,14 @@ const SecurityAuditPanel: React.FC<SecurityAuditPanelProps> = ({
                   </>
                 )}
               </Button>
-              {vulnerabilities.length > 0 && (
+              {(vulnerabilities.length > 0 || uploadedFiles.length > 0) && (
                 <Button variant="outline" onClick={() => {
                   setVulnerabilities([]);
                   setSummary('');
                   setRiskScore(0);
                   setSelectedVuln(null);
+                  setUploadedFiles([]);
+                  setCodeInput('');
                 }}>
                   <RefreshCw className="h-4 w-4" />
                 </Button>

@@ -129,6 +129,8 @@ export const getModePrompt = (mode: ChatMode): string => {
 
 export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps) => {
   const currentMode = modes.find(m => m.value === mode) || modes[0];
+  const standardModes = modes.filter(m => !['cpf', 'ppag', 'hsca'].includes(m.value));
+  const specialModes = modes.filter(m => ['cpf', 'ppag', 'hsca'].includes(m.value));
 
   return (
     <DropdownMenu>
@@ -136,36 +138,48 @@ export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps
         <Button 
           variant="outline" 
           size="sm" 
-          className="gap-2 min-w-[140px]"
+          className="gap-2 h-9 px-3 border-border/50 hover:border-primary/50 transition-colors"
           disabled={disabled}
         >
           <span className={currentMode.color}>{currentMode.icon}</span>
-          <span className="truncate">{currentMode.label}</span>
+          <span className="hidden sm:inline text-sm font-medium">{currentMode.label}</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="w-52">
-        {modes.filter(m => !['cpf', 'ppag', 'hsca'].includes(m.value)).map((m) => (
-          <DropdownMenuItem
-            key={m.value}
-            onClick={() => onModeChange(m.value)}
-            className={`gap-2 cursor-pointer ${mode === m.value ? "bg-muted" : ""}`}
-          >
-            <span className={m.color}>{m.icon}</span>
-            <span>{m.label}</span>
-          </DropdownMenuItem>
-        ))}
-        <DropdownMenuSeparator />
-        <div className="px-2 py-1 text-xs text-muted-foreground font-medium">Special Features</div>
-        {modes.filter(m => ['cpf', 'ppag', 'hsca'].includes(m.value)).map((m) => (
-          <DropdownMenuItem
-            key={m.value}
-            onClick={() => onModeChange(m.value)}
-            className={`gap-2 cursor-pointer ${mode === m.value ? "bg-muted" : ""}`}
-          >
-            <span className={m.color}>{m.icon}</span>
-            <span>{m.label}</span>
-          </DropdownMenuItem>
-        ))}
+      <DropdownMenuContent align="start" className="w-56 p-1">
+        <div className="grid grid-cols-2 gap-1 p-1">
+          {standardModes.map((m) => (
+            <DropdownMenuItem
+              key={m.value}
+              onClick={() => onModeChange(m.value)}
+              className={`flex items-center gap-2 px-2 py-2 rounded-md cursor-pointer text-xs ${
+                mode === m.value ? "bg-primary/10 border border-primary/30" : "hover:bg-muted"
+              }`}
+            >
+              <span className={m.color}>{m.icon}</span>
+              <span className="truncate">{m.label}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
+        <DropdownMenuSeparator className="my-1" />
+        <div className="px-2 py-1.5 text-xs text-muted-foreground font-semibold uppercase tracking-wide">
+          Advanced Features
+        </div>
+        <div className="p-1 space-y-1">
+          {specialModes.map((m) => (
+            <DropdownMenuItem
+              key={m.value}
+              onClick={() => onModeChange(m.value)}
+              className={`flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer ${
+                mode === m.value 
+                  ? "bg-primary/10 border border-primary/30" 
+                  : "hover:bg-muted"
+              }`}
+            >
+              <span className={m.color}>{m.icon}</span>
+              <span className="font-medium">{m.label}</span>
+            </DropdownMenuItem>
+          ))}
+        </div>
       </DropdownMenuContent>
     </DropdownMenu>
   );

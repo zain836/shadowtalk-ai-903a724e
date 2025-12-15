@@ -1,17 +1,11 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Globe, Shield, Sun, Moon } from "lucide-react";
+import { Menu, X, Bot, Zap, Globe, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
 
   const navItems = [
     { name: "Features", href: "#features", icon: Zap },
@@ -59,14 +53,6 @@ const Navigation = () => {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleTheme}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </Button>
-            <Button
               variant="outline"
               size="sm"
               onClick={() => navigate('/auth')}
@@ -113,15 +99,6 @@ const Navigation = () => {
                 </button>
               ))}
               <div className="flex flex-col space-y-3 pt-4 border-t border-border">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={toggleTheme}
-                  className="justify-start"
-                >
-                  {theme === "dark" ? <Sun className="h-4 w-4 mr-2" /> : <Moon className="h-4 w-4 mr-2" />}
-                  {theme === "dark" ? "Light Mode" : "Dark Mode"}
-                </Button>
                 <Button
                   variant="outline"
                   size="sm"
