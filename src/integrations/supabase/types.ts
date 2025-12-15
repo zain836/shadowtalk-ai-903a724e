@@ -280,6 +280,45 @@ export type Database = {
         }
         Relationships: []
       }
+      pay_per_solution: {
+        Row: {
+          amount_paid: number
+          completed_at: string | null
+          created_at: string
+          deliverable_url: string | null
+          email: string | null
+          id: string
+          product_type: string
+          status: string
+          stripe_payment_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          amount_paid: number
+          completed_at?: string | null
+          created_at?: string
+          deliverable_url?: string | null
+          email?: string | null
+          id?: string
+          product_type: string
+          status?: string
+          stripe_payment_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          amount_paid?: number
+          completed_at?: string | null
+          created_at?: string
+          deliverable_url?: string | null
+          email?: string | null
+          id?: string
+          product_type?: string
+          status?: string
+          stripe_payment_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -313,6 +352,48 @@ export type Database = {
           notification_mentions?: boolean | null
           notification_push?: boolean | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          commission_amount: number | null
+          commission_paid: boolean | null
+          converted_at: string | null
+          created_at: string
+          id: string
+          paid_at: string | null
+          referral_code: string
+          referred_email: string
+          referred_user_id: string | null
+          referrer_id: string
+          status: string
+        }
+        Insert: {
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          referral_code: string
+          referred_email: string
+          referred_user_id?: string | null
+          referrer_id: string
+          status?: string
+        }
+        Update: {
+          commission_amount?: number | null
+          commission_paid?: boolean | null
+          converted_at?: string | null
+          created_at?: string
+          id?: string
+          paid_at?: string | null
+          referral_code?: string
+          referred_email?: string
+          referred_user_id?: string | null
+          referrer_id?: string
+          status?: string
         }
         Relationships: []
       }
@@ -493,6 +574,39 @@ export type Database = {
         }
         Relationships: []
       }
+      usage_analytics: {
+        Row: {
+          action_type: string
+          created_at: string
+          feature_used: string | null
+          id: string
+          metadata: Json | null
+          query_category: string | null
+          tokens_used: number | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          feature_used?: string | null
+          id?: string
+          metadata?: Json | null
+          query_category?: string | null
+          tokens_used?: number | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          feature_used?: string | null
+          id?: string
+          metadata?: Json | null
+          query_category?: string | null
+          tokens_used?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_badges: {
         Row: {
           badge_icon: string
@@ -516,6 +630,36 @@ export type Database = {
           badge_name?: string
           earned_at?: string
           id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_referral_codes: {
+        Row: {
+          created_at: string
+          id: string
+          referral_code: string
+          successful_conversions: number | null
+          total_earnings: number | null
+          total_referrals: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          referral_code: string
+          successful_conversions?: number | null
+          total_earnings?: number | null
+          total_referrals?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          referral_code?: string
+          successful_conversions?: number | null
+          total_earnings?: number | null
+          total_referrals?: number | null
           user_id?: string
         }
         Relationships: []

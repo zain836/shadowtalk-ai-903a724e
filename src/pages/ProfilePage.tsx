@@ -11,7 +11,10 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, User, Bell, Shield, Save, Loader2, Camera } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, User, Bell, Shield, Save, Loader2, Camera, Gift, BarChart3 } from "lucide-react";
+import ReferralProgram from "@/components/ReferralProgram";
+import UsageAnalytics from "@/components/UsageAnalytics";
 
 interface Profile {
   id: string;
