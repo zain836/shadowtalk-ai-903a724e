@@ -38,6 +38,102 @@ export type Database = {
         }
         Relationships: []
       }
+      eco_actions: {
+        Row: {
+          category: string
+          co2_saved: number
+          completed_at: string
+          created_at: string
+          description: string | null
+          energy_saved: number
+          eroi: number
+          id: string
+          money_saved: number
+          title: string
+          user_id: string
+          water_saved: number
+        }
+        Insert: {
+          category: string
+          co2_saved?: number
+          completed_at?: string
+          created_at?: string
+          description?: string | null
+          energy_saved?: number
+          eroi?: number
+          id?: string
+          money_saved?: number
+          title: string
+          user_id: string
+          water_saved?: number
+        }
+        Update: {
+          category?: string
+          co2_saved?: number
+          completed_at?: string
+          created_at?: string
+          description?: string | null
+          energy_saved?: number
+          eroi?: number
+          id?: string
+          money_saved?: number
+          title?: string
+          user_id?: string
+          water_saved?: number
+        }
+        Relationships: []
+      }
+      eco_stats: {
+        Row: {
+          actions_completed: number
+          co2_saved: number
+          created_at: string
+          energy_saved: number
+          high_eroi_actions: number
+          id: string
+          last_action_date: string | null
+          level: number
+          money_saved: number
+          streak: number
+          updated_at: string
+          user_id: string
+          water_saved: number
+          xp: number
+        }
+        Insert: {
+          actions_completed?: number
+          co2_saved?: number
+          created_at?: string
+          energy_saved?: number
+          high_eroi_actions?: number
+          id?: string
+          last_action_date?: string | null
+          level?: number
+          money_saved?: number
+          streak?: number
+          updated_at?: string
+          user_id: string
+          water_saved?: number
+          xp?: number
+        }
+        Update: {
+          actions_completed?: number
+          co2_saved?: number
+          created_at?: string
+          energy_saved?: number
+          high_eroi_actions?: number
+          id?: string
+          last_action_date?: string | null
+          level?: number
+          money_saved?: number
+          streak?: number
+          updated_at?: string
+          user_id?: string
+          water_saved?: number
+          xp?: number
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
@@ -76,6 +172,42 @@ export type Database = {
           },
         ]
       }
+      oauth_tokens: {
+        Row: {
+          access_token: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          provider: string
+          refresh_token: string | null
+          scope: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          provider?: string
+          refresh_token?: string | null
+          scope?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -109,6 +241,33 @@ export type Database = {
           subscription_tier?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_badges: {
+        Row: {
+          badge_icon: string
+          badge_id: string
+          badge_name: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          badge_icon: string
+          badge_id: string
+          badge_name: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          badge_icon?: string
+          badge_id?: string
+          badge_name?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
         }
         Relationships: []
       }
