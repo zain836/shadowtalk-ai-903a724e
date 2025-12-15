@@ -18,6 +18,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import EcoLeaderboard from './EcoLeaderboard';
 
 interface EcoAction {
   id: string;
@@ -269,6 +270,9 @@ const PlanetaryActionPanel: React.FC<PlanetaryActionPanelProps> = ({
           </div>
         </CardContent>
       </Card>
+
+      {/* Leaderboard */}
+      <EcoLeaderboard />
 
       {/* Location Input */}
       <div className="flex gap-2">
