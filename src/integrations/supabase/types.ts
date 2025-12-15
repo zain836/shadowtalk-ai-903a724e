@@ -170,6 +170,42 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          category: string
+          created_at: string
+          email: string | null
+          id: string
+          message: string
+          rating: number | null
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          message: string
+          rating?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          message?: string
+          rating?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       messages: {
         Row: {
           content: string
