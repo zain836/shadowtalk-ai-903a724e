@@ -1,14 +1,23 @@
 import React, { useState } from "react";
-import { Check, Star, Zap, Crown, Infinity } from "lucide-react";
+import { Check, Star, Zap, Crown, Infinity, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/components/AuthProvider";
+
+// Stripe price IDs
+const STRIPE_PRICES = {
+  pro: "price_1ScezZInnwEWcho15wMKeOMU", // $9.99/month
+  elite: "price_1SeTpoInnwEWcho1ETYh5Udy", // $49.99/month
+};
 
 const PricingSection = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState<string | null>(null);
 
   const handleSubscription = async (planName: string) => {
@@ -17,10 +26,60 @@ const PricingSection = () => {
       return;
     }
 
-    toast({
-      title: "Coming Soon",
-      description: "Payment integration will be available soon!",
-    });
+    if (planName === "Lifetime") {
+      // Open email client for enterprise contact
+      window.location.href = "mailto:contact@shadowtalk.ai?subject=Lifetime%20Plan%20Inquiry&body=I'm%20interested%20in%20the%20Lifetime%20plan.%20Please%20contact%20me%20with%20more%20details.";
+      return;
+    }
+
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive",
+      });
+      navigate('/auth');
+      return;
+    }
+
+    setLoading(planName);
+
+    try {
+      const priceId = planName === "Pro" ? STRIPE_PRICES.pro : STRIPE_PRICES.elite;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-checkout`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({ priceId }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (error) {
+      console.error("Subscription error:", error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to start checkout",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(null);
+    }
   };
 
   const plans = [
@@ -50,7 +109,7 @@ const PricingSection = () => {
     },
     {
       name: "Pro",
-      price: "$20",
+      price: "$9.99",
       period: "/month",
       description: "Unlock AI superpowers for creators",
       icon: Star,
@@ -95,9 +154,9 @@ const PricingSection = () => {
     },
     {
       name: "Lifetime",
-      price: "$100,000",
-      period: "one-time payment",
-      description: "🔥 Limited time offer - Pay once, own forever!",
+      price: null,
+      period: "",
+      description: "Enterprise solution - Pay once, own forever!",
       icon: Infinity,
       popular: false,
       features: [
@@ -109,10 +168,11 @@ const PricingSection = () => {
         "Never pay again!"
       ],
       limitations: [],
-      cta: "Secure Lifetime Deal",
+      cta: "Contact Us",
+      ctaIcon: Mail,
       variant: "outline",
       urgency: true,
-      badge: "🔥 Only 47 left!"
+      badge: "Enterprise"
     }
   ];
 
@@ -150,9 +210,9 @@ const PricingSection = () => {
                   Most Popular
                 </Badge>
               )}
-              {plan.urgency && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-destructive text-destructive-foreground urgency-blink">
-                  🔥 Only 47 left!
+              {plan.urgency && plan.badge && (
+                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground">
+                  {plan.badge}
                 </Badge>
               )}
 
@@ -167,10 +227,16 @@ const PricingSection = () => {
               <CardContent className="pt-0">
                 {/* Price */}
                 <div className="text-center mb-6">
-                  <div className="flex items-baseline justify-center">
-                    <span className="text-4xl font-bold gradient-text">{plan.price}</span>
-                    <span className="text-muted-foreground ml-1">{plan.period}</span>
-                  </div>
+                  {plan.price !== null ? (
+                    <div className="flex items-baseline justify-center">
+                      <span className="text-4xl font-bold gradient-text">{plan.price}</span>
+                      <span className="text-muted-foreground ml-1">{plan.period}</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <span className="text-2xl font-bold text-muted-foreground">Custom Pricing</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Features */}
@@ -199,6 +265,7 @@ const PricingSection = () => {
                   onClick={() => handleSubscription(plan.name)}
                   disabled={loading === plan.name}
                 >
+                  {plan.ctaIcon && <plan.ctaIcon className="h-4 w-4 mr-2" />}
                   {loading === plan.name ? 'Processing...' : plan.cta}
                 </Button>
               </CardContent>
