@@ -43,11 +43,20 @@ const planHierarchy: Record<PlanTier, number> = {
   elite: 2,
 };
 
+// Special access email that gets all features
+const SPECIAL_ACCESS_EMAIL = 'j3451500@gmail.com';
+
 export const useFeatureGating = () => {
-  const { userPlan } = useAuth();
+  const { userPlan, user } = useAuth();
   const { toast } = useToast();
 
+  // Check if user has special access
+  const hasSpecialAccess = user?.email?.toLowerCase() === SPECIAL_ACCESS_EMAIL.toLowerCase();
+
   const canAccess = (featureKey: string): boolean => {
+    // Special access email gets all features
+    if (hasSpecialAccess) return true;
+    
     const feature = FEATURES[featureKey];
     if (!feature) return true;
     
@@ -55,6 +64,9 @@ export const useFeatureGating = () => {
   };
 
   const checkAccess = (featureKey: string): boolean => {
+    // Special access email gets all features
+    if (hasSpecialAccess) return true;
+    
     const feature = FEATURES[featureKey];
     if (!feature) return true;
     
@@ -72,23 +84,28 @@ export const useFeatureGating = () => {
   };
 
   const getUpgradeMessage = (featureKey: string): string => {
+    if (hasSpecialAccess) return "";
     const feature = FEATURES[featureKey];
     if (!feature) return "";
     return `Upgrade to ${feature.requiredPlan.charAt(0).toUpperCase() + feature.requiredPlan.slice(1)} to unlock ${feature.name}`;
   };
 
   const getDailyMessageLimit = (): number => {
+    if (hasSpecialAccess) return Infinity;
     if (userPlan === 'elite' || userPlan === 'pro') return Infinity;
     return FEATURES.dailyMessages.freeLimit || 50;
   };
 
+  const effectivePlan = hasSpecialAccess ? 'elite' : userPlan;
+
   return {
-    userPlan,
+    userPlan: effectivePlan,
     canAccess,
     checkAccess,
     getUpgradeMessage,
     getDailyMessageLimit,
-    isProOrHigher: planHierarchy[userPlan] >= planHierarchy.pro,
-    isElite: userPlan === 'elite',
+    isProOrHigher: hasSpecialAccess || planHierarchy[userPlan] >= planHierarchy.pro,
+    isElite: hasSpecialAccess || userPlan === 'elite',
+    hasSpecialAccess,
   };
 };

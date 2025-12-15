@@ -90,4 +90,22 @@
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--gradient-primary); border-radius: 4px; }
   .trust-badge { @apply transition-all duration-300; }
   .trust-badge:hover { transform: scale(1.05); }
+  
+  /* Stealth Mode Styles */
+  .stealth-mode {
+    --primary: 210 10% 60%;
+    --secondary: 210 10% 50%;
+    --accent: 210 10% 55%;
+    --background: 210 5% 98%;
+    --foreground: 210 15% 15%;
+    --card: 210 5% 96%;
+    --muted: 210 5% 92%;
+    --border: 210 5% 85%;
+  }
+  .stealth-mode .gradient-text {
+    @apply bg-none text-foreground;
+  }
+  .stealth-mode .neon-glow {
+    box-shadow: none;
+  }
 }

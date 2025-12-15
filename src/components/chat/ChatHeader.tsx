@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, WifiOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Heart, Laugh, Briefcase, Sparkles } from "lucide-react";
+import { OfflineModeIndicator } from "./OfflineModeIndicator";
 
 type Personality = "friendly" | "sarcastic" | "professional" | "creative";
 type UserPlan = 'free' | 'pro' | 'elite';
@@ -31,6 +32,7 @@ interface ChatHeaderProps {
   onSignOut: () => void;
   onOpenAnalytics: () => void;
   onOpenScriptAutomation: () => void;
+  onOpenStealthVault: () => void;
   maxChats: string;
   dailyChats: number;
 }
@@ -67,6 +69,7 @@ export const ChatHeader = ({
   onSignOut,
   onOpenAnalytics,
   onOpenScriptAutomation,
+  onOpenStealthVault,
   maxChats,
   dailyChats,
 }: ChatHeaderProps) => {
@@ -114,6 +117,21 @@ export const ChatHeader = ({
           {getPlanIcon(userPlan)}
           {userPlan.charAt(0).toUpperCase() + userPlan.slice(1)} • {isProOrHigher ? '∞' : `${dailyChats}/${maxChats}`}
         </Badge>
+
+        {/* Offline Mode Indicator - Elite only */}
+        <OfflineModeIndicator />
+
+        {/* Stealth Vault - Elite only */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onOpenStealthVault}
+          className={`h-8 w-8 relative ${!isElite ? 'opacity-50' : ''}`}
+          title={isElite ? 'Stealth Mode & Vault' : 'Elite feature'}
+        >
+          <Shield className="h-4 w-4" />
+          {!isElite && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+        </Button>
 
         {/* Script Automation - Pro+ */}
         <Button
