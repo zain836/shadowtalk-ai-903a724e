@@ -11,13 +11,13 @@ import {
   Clock, 
   AlertTriangle,
   CheckCircle2,
-  XCircle,
   Loader2,
   Plus,
   Trash2
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
+import EmailCalendarIntegration from './EmailCalendarIntegration';
 
 interface Task {
   id: string;
@@ -106,6 +106,45 @@ const CognitiveLoadPanel: React.FC<CognitiveLoadPanelProps> = ({
     ));
   };
 
+  const handleImportTasks = async (source: string, items: string[]) => {
+    for (const item of items) {
+      const taskId = crypto.randomUUID();
+      const newTaskObj: Task = {
+        id: taskId,
+        title: item,
+        source,
+        cls: 0,
+        status: 'processing',
+      };
+
+      setTasks(prev => [...prev, newTaskObj]);
+
+      try {
+        const analysis = await onAnalyzeTask(item);
+        
+        setTasks(prev => prev.map(t => 
+          t.id === taskId 
+            ? {
+                ...t,
+                cls: analysis.cls,
+                summary: analysis.summary,
+                actionRequired: analysis.actionRequired,
+                status: 'pending' as const,
+              }
+            : t
+        ));
+      } catch (error) {
+        // Keep task but mark as unanalyzed
+        setTasks(prev => prev.map(t => 
+          t.id === taskId 
+            ? { ...t, cls: 5, status: 'pending' as const }
+            : t
+        ));
+      }
+    }
+    toast.success(`Imported ${items.length} tasks from ${source}`);
+  };
+
   const sortedTasks = [...tasks].sort((a, b) => b.cls - a.cls);
   const totalCognitiveLoad = tasks.reduce((sum, t) => sum + (t.status !== 'done' ? t.cls : 0), 0);
   const maxLoad = tasks.length * 10;
@@ -140,6 +179,9 @@ const CognitiveLoadPanel: React.FC<CognitiveLoadPanelProps> = ({
           </CardContent>
         </Card>
       </div>
+
+      {/* Email/Calendar Integration */}
+      <EmailCalendarIntegration onImportTasks={handleImportTasks} />
 
       {/* Deep Work Shield */}
       <Card className={`transition-all ${deepWorkMode ? 'border-primary shadow-glow' : 'border-border'}`}>
