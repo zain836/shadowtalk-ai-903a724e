@@ -1,4 +1,4 @@
-import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf } from "lucide-react";
+import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,7 +20,8 @@ export type ChatMode =
   | "creative"
   | "music"
   | "cpf"
-  | "ppag";
+  | "ppag"
+  | "hsca";
 
 interface ModeSelectorProps {
   mode: ChatMode;
@@ -113,6 +114,13 @@ const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: st
     prompt: "You are in Planetary Action Guide (PPAG) mode. Provide hyper-personalized, location-specific environmental actions with high impact. Calculate environmental return on investment for each action.",
     color: "text-emerald-500"
   },
+  { 
+    value: "hsca", 
+    label: "🔒 Security Audit", 
+    icon: <Shield className="h-4 w-4" />,
+    prompt: "You are the Hyper-Security Contextual Auditor (HSCA). Analyze code for security vulnerabilities, trace data flows across stacks, generate proof-of-concept exploits, and provide secure code remediation.",
+    color: "text-red-500"
+  },
 ];
 
 export const getModePrompt = (mode: ChatMode): string => {
@@ -136,7 +144,7 @@ export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-52">
-        {modes.filter(m => m.value !== 'cpf' && m.value !== 'ppag').map((m) => (
+        {modes.filter(m => !['cpf', 'ppag', 'hsca'].includes(m.value)).map((m) => (
           <DropdownMenuItem
             key={m.value}
             onClick={() => onModeChange(m.value)}
@@ -148,7 +156,7 @@ export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps
         ))}
         <DropdownMenuSeparator />
         <div className="px-2 py-1 text-xs text-muted-foreground font-medium">Special Features</div>
-        {modes.filter(m => m.value === 'cpf' || m.value === 'ppag').map((m) => (
+        {modes.filter(m => ['cpf', 'ppag', 'hsca'].includes(m.value)).map((m) => (
           <DropdownMenuItem
             key={m.value}
             onClick={() => onModeChange(m.value)}

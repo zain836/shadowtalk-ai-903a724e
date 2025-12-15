@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location } = await req.json();
+    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location, securityAudit } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
@@ -194,7 +194,108 @@ EROI (Environmental Return on Investment) should be 1-10 based on impact/effort 
       });
     }
 
-    // Image generation mode
+    // HSCA: Security Audit
+    if (securityAudit) {
+      console.log("[CHAT] Running security audit on code");
+      
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-pro",
+          messages: [
+            { 
+              role: "system", 
+              content: `You are the Hyper-Security Contextual Auditor (HSCA), an advanced security analysis tool.
+
+Your job is to analyze code for security vulnerabilities with these capabilities:
+
+1. **End-to-End Vulnerability Tracing (Chain Finder)**
+   - Build a data flow graph across the code
+   - Trace malicious inputs from entry points through the stack
+   - Identify where sanitization or authentication fails
+
+2. **Attack Surface Simulation (Exploit Generator)**
+   - Generate proof-of-concept exploits for vulnerabilities found
+   - Provide cURL commands, payloads, or attack sequences
+   - Make exploits specific and actionable for testing
+
+3. **Remediation Debt Advisor**
+   - Provide principle-based refactoring plans
+   - Generate secure replacement code
+   - Suggest centralized security patterns
+
+Analyze for:
+- SQL Injection
+- XSS (Cross-Site Scripting)
+- CSRF vulnerabilities
+- Authentication/Authorization bypasses
+- Insecure data exposure
+- Race conditions
+- Path traversal
+- Command injection
+- Insecure deserialization
+- Business logic flaws
+
+Return ONLY valid JSON in this exact format:
+{
+  "vulnerabilities": [
+    {
+      "id": "vuln-1",
+      "severity": "critical|high|medium|low|info",
+      "title": "Short title",
+      "description": "Detailed description of the vulnerability",
+      "location": "file/function/line reference",
+      "chain": ["Input Point", "Processing Step", "Vulnerable Output"],
+      "exploit": "curl -X POST ... OR JavaScript payload OR attack sequence",
+      "remediation": "How to fix this properly",
+      "codefix": "Secure replacement code",
+      "category": "SQL Injection|XSS|Auth Bypass|etc"
+    }
+  ],
+  "summary": "Overall security assessment summary",
+  "riskScore": 75
+}
+
+riskScore is 0-100 based on overall risk (100 = critical, 0 = secure).
+Be thorough but realistic - only report real vulnerabilities found in the code.`
+            },
+            { role: "user", content: `Analyze this code for security vulnerabilities:\n\n\`\`\`\n${securityAudit}\n\`\`\`` }
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Security audit failed");
+      }
+
+      const result = await response.json();
+      const content = result.choices?.[0]?.message?.content || "";
+      
+      try {
+        const jsonMatch = content.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const parsed = JSON.parse(jsonMatch[0]);
+          return new Response(JSON.stringify(parsed), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      } catch (e) {
+        console.error("[CHAT] Failed to parse security audit:", e);
+      }
+      
+      return new Response(JSON.stringify({ 
+        vulnerabilities: [],
+        summary: "Unable to parse security analysis results. Please try again with different code.",
+        riskScore: 0
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (generateImage && imagePrompt) {
       console.log("[CHAT] Generating image with prompt:", imagePrompt);
       

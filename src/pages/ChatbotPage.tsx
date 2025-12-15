@@ -47,6 +47,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import CognitiveLoadPanel from "@/components/chat/CognitiveLoadPanel";
 import PlanetaryActionPanel from "@/components/chat/PlanetaryActionPanel";
+import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
@@ -107,6 +108,7 @@ const ChatbotPage = () => {
   const [editingMessage, setEditingMessage] = useState<{ index: number; content: string } | null>(null);
   const [isAnalyzingTask, setIsAnalyzingTask] = useState(false);
   const [isLoadingEcoActions, setIsLoadingEcoActions] = useState(false);
+  const [isAnalyzingSecurity, setIsAnalyzingSecurity] = useState(false);
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -597,6 +599,26 @@ const ChatbotPage = () => {
     }
   };
 
+  const handleSecurityAudit = async (code: string) => {
+    setIsAnalyzingSecurity(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ securityAudit: code }),
+      });
+      
+      if (!resp.ok) throw new Error("Security audit failed");
+      return await resp.json();
+    } finally {
+      setIsAnalyzingSecurity(false);
+    }
+  };
+
   const maxChats = userPlan === "pro" ? "∞" : "15";
   const showSuggestions = messages.length <= 1;
 
@@ -651,8 +673,15 @@ const ChatbotPage = () => {
             />
           )}
 
+          {chatMode === 'hsca' && (
+            <SecurityAuditPanel
+              onAnalyze={handleSecurityAudit}
+              isAnalyzing={isAnalyzingSecurity}
+            />
+          )}
+
           {/* Messages */}
-          <div className={`flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 ${chatMode === 'cpf' || chatMode === 'ppag' ? 'hidden' : ''}`}>
+          <div className={`flex-1 p-4 overflow-y-auto custom-scrollbar space-y-4 ${['cpf', 'ppag', 'hsca'].includes(chatMode) ? 'hidden' : ''}`}>
             {showSuggestions && (
               <SuggestedPrompts 
                 onSelect={(prompt) => setMessage(prompt)} 
