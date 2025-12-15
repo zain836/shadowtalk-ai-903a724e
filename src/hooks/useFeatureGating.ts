@@ -24,8 +24,8 @@ export const FEATURES: Record<string, FeatureConfig> = {
   noAds: { name: "No Advertisements", requiredPlan: "pro" },
   imageGeneration: { name: "Image Generation", requiredPlan: "pro" },
   codeCanvas: { name: "Code Canvas", requiredPlan: "pro" },
+  collaborativeRooms: { name: "Collaborative Rooms", requiredPlan: "pro" },
   prioritySupport: { name: "Priority Support", requiredPlan: "pro" },
-  
   // Elite features  
   offlineMode: { name: "Offline Mode", requiredPlan: "elite" },
   stealthMode: { name: "Stealth Mode & Encrypted Vault", requiredPlan: "elite" },

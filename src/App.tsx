@@ -10,7 +10,11 @@ import PricingPage from "./pages/PricingPage";
 import ChatbotPage from "./pages/ChatbotPage";
 import AuthPage from "./pages/AuthPage";
 import AdminPage from "./pages/AdminPage";
+import DocsPage from "./pages/DocsPage";
+import ChatRoomsPage from "./pages/ChatRoomsPage";
+import CollaborativeRoom from "./pages/CollaborativeRoom";
 import NotFound from "./pages/NotFound";
+import PWABanner from "./components/PWABanner";
 
 const queryClient = new QueryClient();
 
@@ -28,8 +32,12 @@ const App = () => (
               <Route path="/pricing" element={<PricingPage />} />
               <Route path="/chatbot" element={<ChatbotPage />} />
               <Route path="/admin" element={<AdminPage />} />
+              <Route path="/docs" element={<DocsPage />} />
+              <Route path="/rooms" element={<ChatRoomsPage />} />
+              <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
+            <PWABanner />
           </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>

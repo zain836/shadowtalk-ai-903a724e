@@ -1,4 +1,4 @@
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -158,6 +158,24 @@ export const ChatHeader = ({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-1 ml-1">
+          {/* Collaborative Rooms - Pro+ */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => navigate('/rooms')}
+                  className={`h-9 w-9 rounded-xl relative ${!isProOrHigher ? 'opacity-50' : ''}`}
+                >
+                  <Users className="h-4 w-4" />
+                  {!isProOrHigher && <Lock className="h-2 w-2 absolute -top-0.5 -right-0.5" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{isProOrHigher ? 'Collaborative Rooms' : 'Pro feature'}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {/* Model Fine-Tuning - Elite */}
           <TooltipProvider>
             <Tooltip>
