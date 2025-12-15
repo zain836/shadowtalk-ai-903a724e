@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Check, Star, Zap, Crown, Infinity, Mail } from "lucide-react";
+import { Check, Star, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -26,11 +26,6 @@ const PricingSection = () => {
       return;
     }
 
-    if (planName === "Lifetime") {
-      // Open email client for enterprise contact
-      window.location.href = "mailto:contact@shadowtalk.ai?subject=Lifetime%20Plan%20Inquiry&body=I'm%20interested%20in%20the%20Lifetime%20plan.%20Please%20contact%20me%20with%20more%20details.";
-      return;
-    }
 
     if (!user) {
       toast({
@@ -152,28 +147,6 @@ const PricingSection = () => {
       variant: "secondary",
       urgency: false
     },
-    {
-      name: "Lifetime",
-      price: null,
-      period: "",
-      description: "Enterprise solution - Pay once, own forever!",
-      icon: Infinity,
-      popular: false,
-      features: [
-        "Everything in Elite forever",
-        "All future updates included",
-        "VIP Discord community access",
-        "Exclusive webinars & training",
-        "Direct developer access",
-        "Never pay again!"
-      ],
-      limitations: [],
-      cta: "Contact Us",
-      ctaIcon: Mail,
-      variant: "outline",
-      urgency: true,
-      badge: "Enterprise"
-    }
   ];
 
   return (
@@ -195,7 +168,7 @@ const PricingSection = () => {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
             <Card
               key={index}
@@ -208,11 +181,6 @@ const PricingSection = () => {
               {plan.popular && (
                 <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-primary text-primary-foreground">
                   Most Popular
-                </Badge>
-              )}
-              {plan.urgency && plan.badge && (
-                <Badge className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-primary text-primary-foreground">
-                  {plan.badge}
                 </Badge>
               )}
 
@@ -265,7 +233,6 @@ const PricingSection = () => {
                   onClick={() => handleSubscription(plan.name)}
                   disabled={loading === plan.name}
                 >
-                  {plan.ctaIcon && <plan.ctaIcon className="h-4 w-4 mr-2" />}
                   {loading === plan.name ? 'Processing...' : plan.cta}
                 </Button>
               </CardContent>
