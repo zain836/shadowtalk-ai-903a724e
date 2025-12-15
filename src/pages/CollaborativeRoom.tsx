@@ -98,11 +98,14 @@ const CollaborativeRoom = () => {
     
     const { data: room } = await supabase
       .from('chat_rooms')
-      .select('name')
+      .select('name, created_by')
       .eq('id', roomId)
       .single();
     
-    if (room) setRoomName(room.name);
+    if (room) {
+      setRoomName(room.name);
+      setRoomCreatorId(room.created_by);
+    }
     
     const { data: msgs } = await supabase
       .from('room_messages')
@@ -276,6 +279,28 @@ const CollaborativeRoom = () => {
           </div>
           
           <div className="flex items-center gap-2">
+            {/* Moderation Button - Only for room creator */}
+            {user && roomCreatorId === user.id && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => setShowModeration(true)} 
+                      className="rounded-xl gap-2"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Moderate
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Manage room participants</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+            
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -378,6 +403,19 @@ const CollaborativeRoom = () => {
           </Button>
         </div>
       </div>
+
+      {/* Moderation Panel */}
+      {user && roomId && roomCreatorId && (
+        <RoomModeration
+          isOpen={showModeration}
+          onClose={() => setShowModeration(false)}
+          roomId={roomId}
+          roomCreatorId={roomCreatorId}
+          currentUserId={user.id}
+          participants={participants}
+          onParticipantRemoved={loadParticipants}
+        />
+      )}
     </div>
   );
 };
