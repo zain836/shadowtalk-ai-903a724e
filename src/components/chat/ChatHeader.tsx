@@ -30,11 +30,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Heart, Laugh, Briefcase, Sparkles } from "lucide-react";
+import { Heart, Laugh, Briefcase, Sparkles, Search, Lightbulb, Scale, MessageCircle, Target, HelpCircle } from "lucide-react";
 import { OfflineModeIndicator } from "./OfflineModeIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type Personality = "friendly" | "sarcastic" | "professional" | "creative";
+type Personality = "friendly" | "sarcastic" | "professional" | "creative" | "meticulous" | "curious" | "diplomatic" | "witty" | "pragmatic" | "inquisitive";
 type UserPlan = 'free' | 'pro' | 'elite';
 
 const personalities: { value: Personality; label: string; icon: React.ReactNode }[] = [
@@ -42,6 +42,12 @@ const personalities: { value: Personality; label: string; icon: React.ReactNode 
   { value: "sarcastic", label: "Sarcastic", icon: <Laugh className="h-4 w-4" /> },
   { value: "professional", label: "Professional", icon: <Briefcase className="h-4 w-4" /> },
   { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" /> },
+  { value: "meticulous", label: "Meticulous", icon: <Search className="h-4 w-4" /> },
+  { value: "curious", label: "Curious", icon: <Lightbulb className="h-4 w-4" /> },
+  { value: "diplomatic", label: "Diplomatic", icon: <Scale className="h-4 w-4" /> },
+  { value: "witty", label: "Witty", icon: <MessageCircle className="h-4 w-4" /> },
+  { value: "pragmatic", label: "Pragmatic", icon: <Target className="h-4 w-4" /> },
+  { value: "inquisitive", label: "Inquisitive", icon: <HelpCircle className="h-4 w-4" /> },
 ];
 
 interface ChatHeaderProps {
