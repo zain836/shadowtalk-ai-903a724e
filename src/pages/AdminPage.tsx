@@ -9,6 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { 
   Users, 
   MessageSquare, 
   BarChart3, 
@@ -16,9 +23,18 @@ import {
   ArrowLeft,
   Trash2,
   Crown,
-  Zap
+  Zap,
+  MessageSquareHeart,
+  Star,
+  Bug,
+  Lightbulb,
+  HelpCircle,
+  CheckCircle,
+  Clock,
+  XCircle
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
 
 interface UserData {
   id: string;
@@ -46,6 +62,44 @@ interface SubscriberData {
   created_at: string;
 }
 
+interface FeedbackData {
+  id: string;
+  user_id: string | null;
+  email: string | null;
+  category: string;
+  rating: number | null;
+  message: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+const getCategoryIcon = (category: string) => {
+  switch (category) {
+    case 'bug':
+      return <Bug className="h-4 w-4 text-destructive" />;
+    case 'feature':
+      return <Lightbulb className="h-4 w-4 text-yellow-500" />;
+    case 'improvement':
+      return <Zap className="h-4 w-4 text-blue-500" />;
+    default:
+      return <HelpCircle className="h-4 w-4 text-muted-foreground" />;
+  }
+};
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case 'resolved':
+      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>;
+    case 'in_progress':
+      return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
+    case 'dismissed':
+      return <Badge className="bg-muted text-muted-foreground border-border"><XCircle className="h-3 w-3 mr-1" />Dismissed</Badge>;
+    default:
+      return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
+  }
+};
+
 const AdminPage = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
@@ -54,6 +108,7 @@ const AdminPage = () => {
   const [users, setUsers] = useState<UserData[]>([]);
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [subscribers, setSubscribers] = useState<SubscriberData[]>([]);
+  const [feedback, setFeedback] = useState<FeedbackData[]>([]);
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalConversations: 0,
@@ -61,6 +116,8 @@ const AdminPage = () => {
     activeSubscribers: 0,
     proSubscribers: 0,
     eliteSubscribers: 0,
+    totalFeedback: 0,
+    pendingFeedback: 0,
   });
   const [loadingData, setLoadingData] = useState(true);
 
@@ -123,6 +180,15 @@ const AdminPage = () => {
       if (subError) throw subError;
       setSubscribers(subData || []);
 
+      // Fetch feedback
+      const { data: feedbackData, error: feedbackError } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (feedbackError) throw feedbackError;
+      setFeedback(feedbackData || []);
+
       // Calculate stats
       const uniqueUserIds = new Set(convData?.map(c => c.user_id) || []);
       setStats({
@@ -132,6 +198,8 @@ const AdminPage = () => {
         activeSubscribers: subData?.filter(s => s.subscribed).length || 0,
         proSubscribers: subData?.filter(s => s.subscription_tier === 'pro').length || 0,
         eliteSubscribers: subData?.filter(s => s.subscription_tier === 'elite').length || 0,
+        totalFeedback: feedbackData?.length || 0,
+        pendingFeedback: feedbackData?.filter(f => f.status === 'pending').length || 0,
       });
 
     } catch (error) {
@@ -167,6 +235,44 @@ const AdminPage = () => {
     } catch (error) {
       console.error('Error deleting conversation:', error);
       toast.error('Failed to delete conversation');
+    }
+  };
+
+  const handleUpdateFeedbackStatus = async (feedbackId: string, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .update({ status: newStatus })
+        .eq('id', feedbackId);
+
+      if (error) throw error;
+
+      setFeedback(prev => prev.map(f => 
+        f.id === feedbackId ? { ...f, status: newStatus } : f
+      ));
+      toast.success(`Feedback marked as ${newStatus}`);
+    } catch (error) {
+      console.error('Error updating feedback:', error);
+      toast.error('Failed to update feedback status');
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId: string) => {
+    if (!confirm('Are you sure you want to delete this feedback?')) return;
+
+    try {
+      const { error } = await supabase
+        .from('feedback')
+        .delete()
+        .eq('id', feedbackId);
+
+      if (error) throw error;
+
+      setFeedback(prev => prev.filter(f => f.id !== feedbackId));
+      toast.success('Feedback deleted');
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
+      toast.error('Failed to delete feedback');
     }
   };
 
@@ -270,8 +376,17 @@ const AdminPage = () => {
         </div>
 
         {/* Tabs */}
-        <Tabs defaultValue="subscribers" className="space-y-4">
+        <Tabs defaultValue="feedback" className="space-y-4">
           <TabsList>
+            <TabsTrigger value="feedback" className="gap-2">
+              <MessageSquareHeart className="h-4 w-4" />
+              Feedback
+              {stats.pendingFeedback > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
+                  {stats.pendingFeedback}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="subscribers" className="gap-2">
               <Crown className="h-4 w-4" />
               Subscribers
@@ -281,6 +396,89 @@ const AdminPage = () => {
               Conversations
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="feedback">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquareHeart className="h-5 w-5 text-primary" />
+                  User Feedback
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingData ? (
+                  <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Skeleton key={i} className="h-24 w-full" />
+                    ))}
+                  </div>
+                ) : feedback.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">No feedback yet</p>
+                ) : (
+                  <div className="space-y-4">
+                    {feedback.map(item => (
+                      <div 
+                        key={item.id} 
+                        className="p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors space-y-3"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            {getCategoryIcon(item.category)}
+                            <div>
+                              <p className="font-medium capitalize">{item.category.replace('_', ' ')}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.email || 'Anonymous'} • {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {item.rating && (
+                              <div className="flex items-center gap-1">
+                                {[...Array(5)].map((_, i) => (
+                                  <Star
+                                    key={i}
+                                    className={`h-4 w-4 ${i < item.rating! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
+                                  />
+                                ))}
+                              </div>
+                            )}
+                            {getStatusBadge(item.status)}
+                          </div>
+                        </div>
+                        
+                        <p className="text-sm text-foreground/90 pl-7">{item.message}</p>
+                        
+                        <div className="flex items-center gap-2 pl-7 pt-2">
+                          <Select
+                            value={item.status}
+                            onValueChange={(value) => handleUpdateFeedbackStatus(item.id, value)}
+                          >
+                            <SelectTrigger className="w-[140px] h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="pending">Pending</SelectItem>
+                              <SelectItem value="in_progress">In Progress</SelectItem>
+                              <SelectItem value="resolved">Resolved</SelectItem>
+                              <SelectItem value="dismissed">Dismissed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            onClick={() => handleDeleteFeedback(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="subscribers">
             <Card>

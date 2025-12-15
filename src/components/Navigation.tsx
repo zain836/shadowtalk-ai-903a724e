@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { FeedbackForm } from "@/components/FeedbackForm";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -56,6 +57,7 @@ const Navigation = () => {
 
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <FeedbackForm />
             <Button
               variant="outline"
               size="sm"
@@ -99,6 +101,7 @@ const Navigation = () => {
                 </button>
               ))}
               <div className="flex flex-col space-y-3 pt-4 border-t border-border">
+                <FeedbackForm />
                 <Button
                   variant="outline"
                   size="sm"
