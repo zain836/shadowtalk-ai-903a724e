@@ -1,8 +1,9 @@
-import { Send, Mic, MicOff, Square, Image as ImageIcon, Sparkles } from "lucide-react";
+import { Send, Mic, MicOff, Square, Image as ImageIcon, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/chat/FileUpload";
 import { ModeSelector, ChatMode } from "@/components/chat/ModeSelector";
+import { SearchHistory } from "@/components/chat/SearchHistory";
 import {
   Tooltip,
   TooltipContent,
@@ -65,8 +66,12 @@ export const ChatInput = ({
             }}
             disabled={isLoading}
           />
+          {chatMode === 'search' && (
+            <SearchHistory onSelectQuery={(query) => onMessageChange(query)} />
+          )}
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Sparkles className="h-3 w-3" />
+            {chatMode === 'search' && <Globe className="h-3 w-3 text-indigo-500" />}
+            {chatMode !== 'search' && <Sparkles className="h-3 w-3" />}
             <span className="capitalize">{chatMode}</span>
             <span className="text-border">•</span>
             <span className="capitalize">{personality}</span>
