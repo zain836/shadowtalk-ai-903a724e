@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Send, Users, Bot, Loader2, Link2, Copy, Check } from "lucide-react";
+import { ArrowLeft, Send, Users, Bot, Loader2, Link2, Check, Shield } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import RoomModeration from "@/components/chat/RoomModeration";
 
 interface RoomMessage {
   id: string;
@@ -42,6 +43,8 @@ const CollaborativeRoom = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [roomName, setRoomName] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [roomCreatorId, setRoomCreatorId] = useState<string | null>(null);
+  const [showModeration, setShowModeration] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

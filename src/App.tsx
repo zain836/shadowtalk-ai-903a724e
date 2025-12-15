@@ -14,6 +14,7 @@ import DocsPage from "./pages/DocsPage";
 import ChangelogPage from "./pages/ChangelogPage";
 import ChatRoomsPage from "./pages/ChatRoomsPage";
 import CollaborativeRoom from "./pages/CollaborativeRoom";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import PWABanner from "./components/PWABanner";
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/changelog" element={<ChangelogPage />} />
               <Route path="/rooms" element={<ChatRoomsPage />} />
               <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
+              <Route path="/profile" element={<ProfilePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <PWABanner />

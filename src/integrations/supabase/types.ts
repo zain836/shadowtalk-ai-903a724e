@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       chat_rooms: {
         Row: {
+          banned_users: string[] | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -26,6 +27,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          banned_users?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -36,6 +38,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          banned_users?: string[] | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -240,6 +243,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          notification_email: boolean | null
+          notification_mentions: boolean | null
+          notification_push: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          notification_email?: boolean | null
+          notification_mentions?: boolean | null
+          notification_push?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          notification_email?: boolean | null
+          notification_mentions?: boolean | null
+          notification_push?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      room_bans: {
+        Row: {
+          banned_at: string
+          banned_by: string
+          id: string
+          reason: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          banned_at?: string
+          banned_by: string
+          id?: string
+          reason?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          banned_at?: string
+          banned_by?: string
+          id?: string
+          reason?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_bans_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_messages: {
         Row: {
