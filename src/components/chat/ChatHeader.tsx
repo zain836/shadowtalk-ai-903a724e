@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users, MoreVertical, Menu } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users, MoreVertical, Menu, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,7 @@ interface ChatHeaderProps {
   onPersonalityChange: (personality: Personality) => void;
   onToggleSidebar: () => void;
   onExport: () => void;
+  onClearChat: () => void;
   onManageSubscription: () => void;
   onSignOut: () => void;
   onOpenAnalytics: () => void;
@@ -118,6 +119,7 @@ export const ChatHeader = ({
   onPersonalityChange,
   onToggleSidebar,
   onExport,
+  onClearChat,
   onManageSubscription,
   onSignOut,
   onOpenAnalytics,
@@ -228,6 +230,11 @@ export const ChatHeader = ({
             onClick={() => handleMenuAction(onManageSubscription)}
           />
         )}
+        <MenuItem
+          icon={<Trash2 className="h-5 w-5" />}
+          label="Clear Chat"
+          onClick={() => handleMenuAction(onClearChat)}
+        />
         <MenuItem
           icon={<LogOut className="h-5 w-5" />}
           label="Sign Out"
@@ -391,6 +398,10 @@ export const ChatHeader = ({
                   Manage Subscription
                 </DropdownMenuItem>
               )}
+               <DropdownMenuItem onClick={onClearChat}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Clear Chat
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out

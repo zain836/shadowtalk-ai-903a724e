@@ -7,6 +7,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { useToast } from "@/components/ui/use-toast";
 
 export type ChatMode = 
   | "general"
@@ -19,7 +20,6 @@ export type ChatMode =
   | "explain"
   | "creative"
   | "music"
-  | "search"
   | "cpf"
   | "ppag"
   | "hsca";
@@ -102,13 +102,6 @@ const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: st
     color: "text-rose-500"
   },
   { 
-    value: "search", 
-    label: "🔍 Web Search", 
-    icon: <Globe className="h-4 w-4" />,
-    prompt: "You are in web search mode. Search the web for real-time information and provide accurate, up-to-date answers with sources.",
-    color: "text-indigo-500"
-  },
-  { 
     value: "cpf", 
     label: "🌊 Cognitive Filter", 
     icon: <Brain className="h-4 w-4" />,
@@ -136,9 +129,21 @@ export const getModePrompt = (mode: ChatMode): string => {
 };
 
 export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps) => {
+  const { toast } = useToast();
   const currentMode = modes.find(m => m.value === mode) || modes[0];
-  const standardModes = modes.filter(m => !['cpf', 'ppag', 'hsca', 'search'].includes(m.value));
-  const specialModes = modes.filter(m => ['search', 'cpf', 'ppag', 'hsca'].includes(m.value));
+  const standardModes = modes.filter(m => !['cpf', 'ppag', 'hsca'].includes(m.value));
+  const specialModes = modes.filter(m => ['cpf', 'ppag', 'hsca'].includes(m.value));
+
+  const handleSpecialModeClick = (m: typeof modes[0]) => {
+    if (m.value === 'cpf' || m.value === 'ppag') {
+      toast({
+        title: "Coming Soon",
+        description: `The ${m.label.substring(2)} feature is under development and will be available soon.`,
+      });
+    } else {
+      onModeChange(m.value);
+    }
+  };
 
   return (
     <DropdownMenu>
@@ -176,11 +181,11 @@ export const ModeSelector = ({ mode, onModeChange, disabled }: ModeSelectorProps
           {specialModes.map((m) => (
             <DropdownMenuItem
               key={m.value}
-              onClick={() => onModeChange(m.value)}
+              onClick={() => handleSpecialModeClick(m)}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-md cursor-pointer ${
                 mode === m.value 
                   ? "bg-primary/10 border border-primary/30" 
-                  : "hover:bg-muted"
+                  : (m.value === 'cpf' || m.value === 'ppag') ? 'opacity-50' : "hover:bg-muted"
               }`}
             >
               <span className={m.color}>{m.icon}</span>

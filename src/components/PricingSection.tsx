@@ -165,7 +165,6 @@ const PricingSection = () => {
         "Everything in Premium +",
         "🔥 Offline mode (works anywhere)",
         "Stealth mode & encrypted vault",
-        "AI agents & workflow automation",
         "Custom model fine-tuning",
         "White-label solutions",
         "24/7 phone support",
