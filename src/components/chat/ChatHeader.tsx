@@ -234,6 +234,8 @@ export const ChatHeader = ({
           icon={<Trash2 className="h-5 w-5" />}
           label="Clear Chat"
           onClick={() => handleMenuAction(onClearChat)}
+          disabled={!isElite}
+          locked={!isElite}
         />
         <MenuItem
           icon={<LogOut className="h-5 w-5" />}
@@ -398,9 +400,10 @@ export const ChatHeader = ({
                   Manage Subscription
                 </DropdownMenuItem>
               )}
-               <DropdownMenuItem onClick={onClearChat}>
+               <DropdownMenuItem onClick={onClearChat} disabled={!isElite}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Clear Chat
+                {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onSignOut}>
                 <LogOut className="h-4 w-4 mr-2" />
