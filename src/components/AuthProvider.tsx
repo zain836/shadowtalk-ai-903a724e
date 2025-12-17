@@ -98,12 +98,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
 
-        if (session?.user) {
-          setTimeout(() => {
-            checkSubscription();
-            checkAndAssignAdminRole();
-          }, 100);
-        } else {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          checkSubscription();
+          checkAndAssignAdminRole();
+        } else if (event === 'SIGNED_OUT') {
           setUserPlan('free');
           setSubscribed(false);
           setSubscriptionEnd(null);
@@ -118,10 +116,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(session?.user ?? null);
 
       if (session?.user) {
-        setTimeout(() => {
-          checkSubscription();
-          checkAndAssignAdminRole();
-        }, 100);
+        checkSubscription();
+        checkAndAssignAdminRole();
       }
 
       setLoading(false);
@@ -130,16 +126,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  // Refresh subscription status periodically
-  useEffect(() => {
-    if (!session) return;
-    
-    const interval = setInterval(() => {
-      checkSubscription();
-    }, 60000); // Check every minute
-
-    return () => clearInterval(interval);
-  }, [session]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
