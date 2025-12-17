@@ -106,7 +106,12 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                   h1({ children }) { return <h1 className="text-base font-bold">{children}</h1>; },
                   h2({ children }) { return <h2 className="text-sm font-bold">{children}</h2>; },
                   h3({ children }) { return <h3 className="text-sm font-semibold">{children}</h3>; },
-                  p({ children }) { return <p className="text-sm leading-relaxed">{children}</p>; },
+                  p({ node, children }) {
+                    if (node && node.children.length === 1 && node.children[0].type === 'element' && node.children[0].tagName === 'code') {
+                      return <>{children}</>;
+                    }
+                    return <p className="text-sm leading-relaxed">{children}</p>;
+                  },
                   a({ children, href }) { 
                     return (
                       <a href={href} target="_blank" rel="noopener noreferrer" 
