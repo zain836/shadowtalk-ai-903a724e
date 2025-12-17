@@ -233,13 +233,39 @@ const ChatbotPage = () => {
       .select()
       .single();
     
-    if (role === 'user' && messages.length <= 1) {
-      const title = content.slice(0, 50) + (content.length > 50 ? '...' : '');
-      await supabase.from('conversations').update({ title, updated_at: new Date().toISOString() }).eq('id', currentConversationId);
-      setConversations(prev => prev.map(c => c.id === currentConversationId ? { ...c, title } : c));
-    }
-    
     return data;
+  };
+
+  const generateAndSetConversationTitle = async (userMessage: string, aiMessage: string) => {
+    if (!currentConversationId || !user) return;
+  
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        body: JSON.stringify({
+          generateTitle: true,
+          userMessage,
+          aiMessage,
+        }),
+      });
+  
+      const { title } = await resp.json();
+  
+      if (title) {
+        await supabase
+          .from('conversations')
+          .update({ title, updated_at: new Date().toISOString() })
+          .eq('id', currentConversationId);
+  
+        setConversations(prev =>
+          prev.map(c => (c.id === currentConversationId ? { ...c, title } : c))
+        );
+      }
+    } catch (error) {
+      console.error("Failed to generate conversation title:", error);
+    }
   };
 
   // Message Handling
@@ -261,6 +287,8 @@ const ChatbotPage = () => {
       setMessage(messageToSend.replace(/^\/imagine\s+/i, ''));
       return;
     }
+
+    const isNewConversation = messages.length <= 1;
 
     const userMessage: Message = { 
       id: crypto.randomUUID(), 
@@ -367,7 +395,13 @@ const ChatbotPage = () => {
         }
       }
 
-      if (assistantContent) await saveMessage(assistantContent, 'assistant');
+      if (assistantContent) {
+        await saveMessage(assistantContent, 'assistant');
+        if (isNewConversation) {
+          generateAndSetConversationTitle(messageToSend, assistantContent);
+        }
+      }
+
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') return;
       console.error("Chat error:", error);

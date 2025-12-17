@@ -11,11 +11,46 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location, securityAudit, webSearch, searchQuery } = await req.json();
+    const { messages, personality, generateImage, imagePrompt, mode, modePrompt, userContext, analyzeTask, getEcoActions, location, securityAudit, webSearch, searchQuery, generateTitle, userMessage, aiMessage } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
       throw new Error("LOVABLE_API_KEY is not configured");
+    }
+
+    if (generateTitle) {
+      console.log("[CHAT] Generating conversation title");
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            {
+              role: "system",
+              content: "You are a title generation assistant. Based on the user's first message and the AI's first response, generate a very short, concise title for the conversation (max 5-7 words). The title should capture the main topic or question. Do not use quotes or any other formatting.",
+            },
+            {
+              role: "user",
+              content: `User: "${userMessage}"\nAI: "${aiMessage}"\n\nGenerate a short title for this conversation.`,
+            },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Title generation failed");
+      }
+
+      const result = await response.json();
+      const title = result.choices?.[0]?.message?.content.trim().replace(/"/g, '') || "Untitled Conversation";
+      
+      return new Response(JSON.stringify({ title }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Web Search
