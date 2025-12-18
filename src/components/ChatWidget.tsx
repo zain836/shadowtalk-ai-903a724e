@@ -20,23 +20,27 @@ const ChatWidget = () => {
 
   const faqs = [
     {
-      q: 'What is ShadowTalk AI?',
+      q: 'help',
+      a: "I can help you with questions about our website. Try asking about features, pricing, or our subscription plans. For example: 'What is ShadowTalk AI?'"
+    },
+    {
+      q: 'what is shadowtalk ai?',
       a: 'ShadowTalk AI is an advanced AI chatbot with multimodal capabilities, including voice input and image generation. It\'s designed for creators, coders, and CEOs to enhance their productivity and creativity.'
     },
     {
-      q: 'What are the subscription plans?',
-      a: 'We offer a free plan with limited features, a Pro plan with more features and higher limits, and an Elite plan with access to our REST API and all features.'
+      q: 'subscription plans pricing',
+      a: 'We offer a free plan with limited features, a Pro plan with more features and higher limits, and an Elite plan with access to our REST API and all features. You can see a detailed breakdown on our pricing page.'
     },
     {
-      q: 'How does offline mode work?',
+      q: 'offline mode',
       a: 'Elite plan users can access offline mode, which caches your recent conversations and provides limited AI responses using on-device processing. Full functionality requires an internet connection. Install the PWA for the best offline experience.'
     },
     {
-        q: "How do collaborative rooms work?",
+        q: "collaborative rooms collaboration",
         a: "Collaborative rooms allow multiple users to interact with the AI together in real-time. Create a room, share the invite link, and all participants can send messages and see AI responses instantly. Room creators have moderation tools to manage participants."
     },
     {
-        q: "What's included in each subscription tier?",
+        q: "subscription tier features",
         a: "Our pricing page has a detailed breakdown of each plan. Generally, higher tiers offer more daily chats, access to advanced features like image generation and API access, and priority support."
     }
   ];
