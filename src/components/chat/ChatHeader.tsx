@@ -62,7 +62,6 @@ interface ChatHeaderProps {
   onOpenAnalytics: () => void;
   onOpenScriptAutomation: () => void;
   onOpenStealthVault: () => void;
-  onOpenAgentWorkflows: () => void;
   onOpenModelFineTuning: () => void;
   onOpenWhiteLabelBranding: () => void;
   maxChats: string;
@@ -125,7 +124,6 @@ export const ChatHeader = ({
   onOpenAnalytics,
   onOpenScriptAutomation,
   onOpenStealthVault,
-  onOpenAgentWorkflows,
   onOpenModelFineTuning,
   onOpenWhiteLabelBranding,
   maxChats,
@@ -194,13 +192,6 @@ export const ChatHeader = ({
           icon={<Palette className="h-5 w-5" />}
           label="White-Label Branding"
           onClick={() => handleMenuAction(onOpenWhiteLabelBranding)}
-          disabled={!isElite}
-          locked={!isElite}
-        />
-        <MenuItem
-          icon={<Zap className="h-5 w-5" />}
-          label="AI Agent Workflows"
-          onClick={() => handleMenuAction(onOpenAgentWorkflows)}
           disabled={!isElite}
           locked={!isElite}
         />
@@ -373,11 +364,6 @@ export const ChatHeader = ({
               <DropdownMenuItem onClick={onOpenWhiteLabelBranding} disabled={!isElite}>
                 <Palette className="h-4 w-4 mr-2" />
                 White-Label Branding
-                {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={onOpenAgentWorkflows} disabled={!isElite}>
-                <Zap className="h-4 w-4 mr-2" />
-                AI Agent Workflows
                 {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onOpenStealthVault} disabled={!isElite}>
