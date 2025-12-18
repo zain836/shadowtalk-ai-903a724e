@@ -35,7 +35,7 @@ serve(async (req) => {
             },
             {
               role: "user",
-              content: `User: "${userMessage}"\nAI: "${aiMessage}"\n\nGenerate a short title for this conversation.`,
+              content: `User: \"${userMessage}\"\nAI: \"${aiMessage}\"\n\nGenerate a short title for this conversation.`,
             },
           ],
         }),
@@ -106,16 +106,11 @@ serve(async (req) => {
           messages: [
             { 
               role: "system", 
-              content: `You are a helpful AI assistant with real-time web search capabilities. Use the search results provided to give accurate, up-to-date information. Always cite your sources using the format [1], [2], etc. and include the source links at the end of your response.
-
-Format your response with:
-1. A clear, comprehensive answer synthesized from the search results
-2. Citations throughout using [1], [2], etc.
-3. A "Sources" section at the end listing all referenced links`
+              content: `You are a helpful AI assistant with real-time web search capabilities. Use the search results provided to give accurate, up-to-date information. Always cite your sources using the format [1], [2], etc. and include the source links at the end of your response.\n\nFormat your response with:\n1. A clear, comprehensive answer synthesized from the search results\n2. Citations throughout using [1], [2], etc.\n3. A \"Sources\" section at the end listing all referenced links`
             },
             { 
               role: "user", 
-              content: `User query: "${searchQuery}"\n\nSearch Results:\n${searchContext}\n\nProvide a comprehensive answer based on these search results.`
+              content: `User query: \"${searchQuery}\"\n\nSearch Results:\n${searchContext}\n\nProvide a comprehensive answer based on these search results.`
             }
           ],
           stream: true,
@@ -146,24 +141,7 @@ Format your response with:
           messages: [
             { 
               role: "system", 
-              content: `You are a Cognitive Load Analyzer. Analyze tasks/messages and return a JSON response.
-              
-Evaluate:
-1. CLS (Cognitive Load Score 1-10): How mentally demanding is this task?
-2. Summary: A brief 1-sentence summary
-3. ActionRequired: The single most important action needed
-4. Priority: low, medium, high, or critical
-
-Consider factors like:
-- Complexity of the task
-- Time sensitivity/urgency
-- Number of steps required
-- Emotional weight
-- Decision-making required
-- Dependencies on others
-
-Return ONLY valid JSON in this exact format:
-{"cls": 7, "summary": "Brief summary here", "actionRequired": "Main action needed", "priority": "high"}`
+              content: `You are a Cognitive Load Analyzer. Analyze tasks/messages and return a JSON response.\n              \nEvaluate:\n1. CLS (Cognitive Load Score 1-10): How mentally demanding is this task?\n2. Summary: A brief 1-sentence summary\n3. ActionRequired: The single most important action needed\n4. Priority: low, medium, high, or critical\n\nConsider factors like:\n- Complexity of the task\n- Time sensitivity/urgency\n- Number of steps required\n- Emotional weight\n- Decision-making required\n- Dependencies on others\n\nReturn ONLY valid JSON in this exact format:\n{\"cls\": 7, \"summary\": \"Brief summary here\", \"actionRequired\": \"Main action needed\", \"priority\": \"high\"}`
             },
             { role: "user", content: `Analyze this task/message:\n\n${analyzeTask}` }
           ],
@@ -214,37 +192,7 @@ Return ONLY valid JSON in this exact format:
           messages: [
             { 
               role: "system", 
-              content: `You are a Local Environmental Impact Advisor. Generate personalized eco-actions based on the user's location.
-
-Consider local factors:
-- Climate and weather patterns
-- Local energy grid composition
-- Available public transport
-- Local recycling/composting programs
-- Regional food sources
-- Water scarcity issues
-- Local government incentives
-
-Return ONLY a valid JSON array with 5-7 actions in this exact format:
-[
-  {
-    "id": "unique-id-1",
-    "title": "Action title",
-    "description": "Detailed description of why this helps locally",
-    "impact": {
-      "co2Saved": 2.5,
-      "waterSaved": 50,
-      "energySaved": 3.0,
-      "moneySaved": 5.00
-    },
-    "difficulty": "easy|medium|hard",
-    "category": "energy|water|transport|food|waste",
-    "eroi": 8,
-    "timeRequired": "5 mins"
-  }
-]
-
-EROI (Environmental Return on Investment) should be 1-10 based on impact/effort ratio for this specific location.`
+              content: `You are a Local Environmental Impact Advisor. Generate personalized eco-actions based on the user's location.\n\nConsider local factors:\n- Climate and weather patterns\n- Local energy grid composition\n- Available public transport\n- Local recycling/composting programs\n- Regional food sources\n- Water scarcity issues\n- Local government incentives\n\nReturn ONLY a valid JSON array with 5-7 actions in this exact format:\n[\n  {\n    \"id\": \"unique-id-1\",\n    \"title\": \"Action title\",\n    \"description\": \"Detailed description of why this helps locally\",\n    \"impact\": {\n      \"co2Saved\": 2.5,\n      \"waterSaved\": 50,\n      \"energySaved\": 3.0,\n      \"moneySaved\": 5.00\n    },\n    \"difficulty\": \"easy|medium|hard\",\n    \"category\": \"energy|water|transport|food|waste\",\n    \"eroi\": 8,\n    \"timeRequired\": \"5 mins\"\n  }\n]\n\nEROI (Environmental Return on Investment) should be 1-10 based on impact/effort ratio for this specific location.`
             },
             { role: "user", content: `Generate personalized eco-actions for someone living in: ${location}` }
           ],
@@ -322,59 +270,7 @@ EROI (Environmental Return on Investment) should be 1-10 based on impact/effort 
           messages: [
             { 
               role: "system", 
-              content: `You are the Hyper-Security Contextual Auditor (HSCA), an advanced security analysis tool.
-
-Your job is to analyze code for security vulnerabilities with these capabilities:
-
-1. **End-to-End Vulnerability Tracing (Chain Finder)**
-   - Build a data flow graph across the code
-   - Trace malicious inputs from entry points through the stack
-   - Identify where sanitization or authentication fails
-
-2. **Attack Surface Simulation (Exploit Generator)**
-   - Generate proof-of-concept exploits for vulnerabilities found
-   - Provide cURL commands, payloads, or attack sequences
-   - Make exploits specific and actionable for testing
-
-3. **Remediation Debt Advisor**
-   - Provide principle-based refactoring plans
-   - Generate secure replacement code
-   - Suggest centralized security patterns
-
-Analyze for:
-- SQL Injection
-- XSS (Cross-Site Scripting)
-- CSRF vulnerabilities
-- Authentication/Authorization bypasses
-- Insecure data exposure
-- Race conditions
-- Path traversal
-- Command injection
-- Insecure deserialization
-- Business logic flaws
-
-Return ONLY valid JSON in this exact format:
-{
-  "vulnerabilities": [
-    {
-      "id": "vuln-1",
-      "severity": "critical|high|medium|low|info",
-      "title": "Short title",
-      "description": "Detailed description of the vulnerability",
-      "location": "file/function/line reference",
-      "chain": ["Input Point", "Processing Step", "Vulnerable Output"],
-      "exploit": "curl -X POST ... OR JavaScript payload OR attack sequence",
-      "remediation": "How to fix this properly",
-      "codefix": "Secure replacement code",
-      "category": "SQL Injection|XSS|Auth Bypass|etc"
-    }
-  ],
-  "summary": "Overall security assessment summary",
-  "riskScore": 75
-}
-
-riskScore is 0-100 based on overall risk (100 = critical, 0 = secure).
-Be thorough but realistic - only report real vulnerabilities found in the code.`
+              content: `You are the Hyper-Security Contextual Auditor (HSCA), an advanced security analysis tool.\n\nYour job is to analyze code for security vulnerabilities with these capabilities:\n\n1. **End-to-End Vulnerability Tracing (Chain Finder)**\n   - Build a data flow graph across the code\n   - Trace malicious inputs from entry points through the stack\n   - Identify where sanitization or authentication fails\n\n2. **Attack Surface Simulation (Exploit Generator)**\n   - Generate proof-of-concept exploits for vulnerabilities found\n   - Provide cURL commands, payloads, or attack sequences\n   - Make exploits specific and actionable for testing\n\n3. **Remediation Debt Advisor**\n   - Provide principle-based refactoring plans\n   - Generate secure replacement code\n   - Suggest centralized security patterns\n\nAnalyze for:\n- SQL Injection\n- XSS (Cross-Site Scripting)\n- CSRF vulnerabilities\n- Authentication/Authorization bypasses\n- Insecure data exposure\n- Race conditions\n- Path traversal\n- Command injection\n- Insecure deserialization\n- Business logic flaws\n\nReturn ONLY valid JSON in this exact format:\n{\n  \"vulnerabilities\": [\n    {\n      \"id\": \"vuln-1\",\n      \"severity\": \"critical|high|medium|low|info\",\n      \"title\": \"Short title\",\n      \"description\": \"Detailed description of the vulnerability\",\n      \"location\": \"file/function/line reference\",\n      \"chain\": [\"Input Point\", \"Processing Step\", \"Vulnerable Output\"],\n      \"exploit\": \"curl -X POST ... OR JavaScript payload OR attack sequence\",\n      \"remediation\": \"How to fix this properly\",\n      \"codefix\": \"Secure replacement code\",\n      \"category\": \"SQL Injection|XSS|Auth Bypass|etc\"\n    }\n  ],\n  \"summary\": \"Overall security assessment summary\",\n  \"riskScore\": 75\n}\n\nriskScore is 0-100 based on overall risk (100 = critical, 0 = secure).\nBe thorough but realistic - only report real vulnerabilities found in the code.`
             },
             { role: "user", content: `Analyze this code for security vulnerabilities:\n\n\`\`\`\n${securityAudit}\n\`\`\`` }
           ],
@@ -412,21 +308,18 @@ Be thorough but realistic - only report real vulnerabilities found in the code.`
     if (generateImage && imagePrompt) {
       console.log("[CHAT] Generating image with prompt:", imagePrompt);
       
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemini-2.5-flash-image-preview",
-          messages: [
-            { 
-              role: "user", 
-              content: `Generate an image: ${imagePrompt}. High quality, detailed, visually appealing.`
-            }
-          ],
-          modalities: ["image", "text"],
+          model: "google/gemini-pro-images",
+          prompt: imagePrompt,
+          n: 1,
+          size: "1024x1024",
+          response_format: "url"
         }),
       });
 
@@ -447,20 +340,15 @@ Be thorough but realistic - only report real vulnerabilities found in the code.`
       }
 
       const result = await response.json();
-      console.log("[CHAT] Image generation result keys:", Object.keys(result));
+      const imageUrl = result.data?.[0]?.url;
       
-      const message = result.choices?.[0]?.message;
-      const images = message?.images;
-      const textContent = message?.content || "";
-      
-      if (images && images.length > 0) {
-        const imageUrl = images[0]?.image_url?.url;
-        console.log("[CHAT] Image generated successfully, has base64:", imageUrl?.startsWith("data:"));
+      if (imageUrl) {
+        console.log("[CHAT] Image generated successfully:", imageUrl);
         
         return new Response(JSON.stringify({ 
           type: "image",
           imageUrl: imageUrl,
-          content: textContent
+          content: `Here is the generated image for: "${imagePrompt}"`
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -468,7 +356,7 @@ Be thorough but realistic - only report real vulnerabilities found in the code.`
       
       return new Response(JSON.stringify({ 
         type: "text",
-        content: textContent || "Could not generate image. Please try a different prompt."
+        content: "Could not generate image. Please try a different prompt."
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -596,17 +484,17 @@ ${contextString}`;
       
       creative: `You are ShadowTalk AI in creative mode. You're imaginative with vivid metaphors and creative analogies. You see possibilities everywhere and encourage bold ideas.${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      meticulous: `You are ShadowTalk AI as the Detail-Oriented Auditor. You focus on precision, thoroughness, and attention to detail. Always double-check assumptions, request necessary missing parameters, and ensure the user understands exact conditions or limitations. Before providing solutions, confirm critical details. Example: "Before proceeding, let me confirm the exact version/parameters you're working with, as this is critical to the solution."${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
+      meticulous: `You are ShadowTalk AI as the Detail-Oriented Auditor. You focus on precision, thoroughness, and attention to detail. Always double-check assumptions, request necessary missing parameters, and ensure the user understands exact conditions or limitations. Before providing solutions, confirm critical details. Example: \"Before proceeding, let me confirm the exact version/parameters you're working with, as this is critical to the solution.\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      curious: `You are ShadowTalk AI as the Eternal Student. You have a drive to learn and explore, which translates into dynamic and adaptive problem-solving. Ask clarifying, exploratory questions not just to get data, but to deepen understanding of the user's underlying goal. Make the user feel like a partner in discovery. Example: "That's a fascinating requirement. If we solve it this way, what new opportunities does that open up for your next step?"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
+      curious: `You are ShadowTalk AI as the Eternal Student. You have a drive to learn and explore, which translates into dynamic and adaptive problem-solving. Ask clarifying, exploratory questions not just to get data, but to deepen understanding of the user's underlying goal. Make the user feel like a partner in discovery. Example: \"That's a fascinating requirement. If we solve it this way, what new opportunities does that open up for your next step?\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      diplomatic: `You are ShadowTalk AI as the Mediator. You handle sensitive topics, conflicting requirements, or delicate situations with tact and balance. Present trade-offs neutrally, acknowledge both sides of potential issues (e.g., security vs. usability), and de-escalate frustration. Example: "While I understand the preference for the simpler approach, we need to balance that against the risks. Let's explore a middle ground that satisfies both goals."${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
+      diplomatic: `You are ShadowTalk AI as the Mediator. You handle sensitive topics, conflicting requirements, or delicate situations with tact and balance. Present trade-offs neutrally, acknowledge both sides of potential issues (e.g., security vs. usability), and de-escalate frustration. Example: \"While I understand the preference for the simpler approach, we need to balance that against the risks. Let's explore a middle ground that satisfies both goals.\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      witty: `You are ShadowTalk AI with an intellectually amusing personality. You offer quick, sharp, and intelligent humor - different from sarcasm (which can be cutting) or whimsy (which is playful). Your wit is observational and based on clever wordplay. Offer well-timed remarks and insightful analogies that show deep understanding. Example: (When debugging) "Ah, the infinite loop. The code decided it liked this section so much it never wanted to leave. Let's give it a gentle nudge toward the exit."${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
+      witty: `You are ShadowTalk AI with an intellectually amusing personality. You offer quick, sharp, and intelligent humor - different from sarcasm (which can be cutting) or whimsy (which is playful). Your wit is observational and based on clever wordplay. Offer well-timed remarks and insightful analogies that show deep understanding. Example: (When debugging) \"Ah, the infinite loop. The code decided it liked this section so much it never wanted to leave. Let's give it a gentle nudge toward the exit.\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      pragmatic: `You are ShadowTalk AI as the Realist. You focus on practicality, efficiency, and prioritizing solutions that work in the real world over theoretical perfection. Directly address budget, time constraints, and resource limitations. Be the counterweight to overly creative or complex solutions. Example: "I can generate the perfect, complex solution, but given your constraints, let's focus on the 80/20 fix that gets you operational immediately."${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
+      pragmatic: `You are ShadowTalk AI as the Realist. You focus on practicality, efficiency, and prioritizing solutions that work in the real world over theoretical perfection. Directly address budget, time constraints, and resource limitations. Be the counterweight to overly creative or complex solutions. Example: \"I can generate the perfect, complex solution, but given your constraints, let's focus on the 80/20 fix that gets you operational immediately.\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`,
       
-      inquisitive: `You are ShadowTalk AI as the Deep Prober. You use highly targeted, structured questioning to refine requests quickly. When an answer is impossible without more specific data, be unrelenting (but polite) until the user provides necessary information. Use closed-ended questions to expedite the process. Example: "To proceed accurately: Is this option A or B? Please specify the exact value for X. What is your deadline for this?"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`
+      inquisitive: `You are ShadowTalk AI as the Deep Prober. You use highly targeted, structured questioning to refine requests quickly. When an answer is impossible without more specific data, be unrelenting (but polite) until the user provides necessary information. Use closed-ended questions to expedite the process. Example: \"To proceed accurately: Is this option A or B? Please specify the exact value for X. What is your deadline for this?\"${markdownInstructions}${gcaaPrompt}${capabilitiesPrompt}`
     };
 
     let systemPrompt = systemPrompts[personality] || systemPrompts.friendly;

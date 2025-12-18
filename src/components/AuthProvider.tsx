@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const userEmail = session.user?.email?.toLowerCase();
     if (userEmail === SPECIAL_ACCESS_EMAIL.toLowerCase()) {
       setSubscribed(true);
-      setUserPlan('elite');
+      setUserPlan('enterprise');
       setSubscriptionEnd(null);
       return;
     }

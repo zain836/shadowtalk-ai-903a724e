@@ -546,13 +546,16 @@ const ChatbotPage = () => {
       {showImageGenerator && (
         <ImageGenerator
           onClose={() => setShowImageGenerator(false)}
-          onImageGenerated={(content, prompt) => {
+          onImageGenerated={(imageUrl, prompt) => {
             setShowImageGenerator(false);
             trackImageGeneration(prompt);
+            const content = `Here is the image you requested for \"${prompt}\":\n\n![Generated image](${imageUrl})`;
             setMessages(prev => [...prev, 
               { id: crypto.randomUUID(), type: 'user', content: `/imagine ${prompt}`, timestamp: new Date() },
-              { id: crypto.randomUUID(), type: 'ai', content: `🎨 **Image Generation**\n\n${content}`, timestamp: new Date() }
+              { id: crypto.randomUUID(), type: 'ai', content, timestamp: new Date() }
             ]);
+            saveMessage(`/imagine ${prompt}`, 'user');
+            saveMessage(content, 'assistant');
           }}
         />
       )}

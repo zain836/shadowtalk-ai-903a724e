@@ -69,7 +69,9 @@ serve(async (req) => {
     // Product IDs for plan detection
     const PRODUCTS = {
       pro: "prod_TZocSSpPddFCH1",
+      premium: "prod_TbiuwlUUg3F17C",
       elite: "prod_TbhEVUPSLMSF53",
+      enterprise: "prod_TbivJcOChrAcvq",
     };
 
     if (hasActiveSub) {
@@ -77,8 +79,12 @@ serve(async (req) => {
       subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
       productId = subscription.items.data[0]?.price?.product as string;
       
-      if (productId === PRODUCTS.elite) {
+      if (productId === PRODUCTS.enterprise) {
+        plan = "enterprise";
+      } else if (productId === PRODUCTS.elite) {
         plan = "elite";
+      } else if (productId === PRODUCTS.premium) {
+        plan = "premium";
       } else if (productId === PRODUCTS.pro) {
         plan = "pro";
       } else {
@@ -93,6 +99,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
       plan,
+      product_id: productId,
       subscription_end: subscriptionEnd
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

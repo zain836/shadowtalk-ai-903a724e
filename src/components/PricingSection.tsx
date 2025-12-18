@@ -93,11 +93,8 @@ const PricingSection = () => {
       popular: false,
       highlight: false,
       features: [
-        "50 queries per day",
-        "Basic legal/financial info",
-        "Simple document checklists",
-        "Basic translation (10 languages)",
-        "Community support",
+        "Basic Chat",
+        "50 Daily Messages",
       ],
       limitations: [
         "🔒 No Proactive Context Engine (PCE)",
@@ -117,14 +114,13 @@ const PricingSection = () => {
       popular: false,
       highlight: false,
       features: [
-        "Unlimited queries",
-        "Full Universal Regulation Mapping (URM)",
-        "Cross-jurisdictional comparisons",
-        "Code generation & debugging",
-        "Chat export & history",
-        "Priority support (< 4h)",
-        "No advertisements",
-        "100+ language translation",
+        "Unlimited Messages",
+        "Advanced Code Generation",
+        "Save & Export Chat",
+        "No Advertisements",
+        "Priority Support",
+        "100+ Language Translation",
+        "Full Universal Regulation Mapping",
       ],
       limitations: [],
       cta: "Upgrade to Pro",
@@ -142,12 +138,14 @@ const PricingSection = () => {
         "Everything in Pro +",
         "🔥 Proactive Context Engine (PCE)",
         "🔥 Multi-Step Workflow Executor (MWE)",
-        "Guided application walkthroughs",
-        "Tax break & benefit recommendations",
-        "Life event proactive suggestions",
-        "Document generation (contracts, NDAs)",
-        "Real-time collaboration",
-        "Priority support (< 2h)",
+        "Document Generation",
+        "Life Event Proactive Suggestions",
+        "Guided Application Walkthroughs",
+        "Script Automation Engine",
+        "Text-to-Speech",
+        "Image Generation",
+        "Code Canvas",
+        "Collaborative Rooms",
       ],
       limitations: [],
       cta: "Go Premium",
@@ -163,13 +161,14 @@ const PricingSection = () => {
       highlight: false,
       features: [
         "Everything in Premium +",
-        "🔥 Offline mode (works anywhere)",
-        "Stealth mode & encrypted vault",
-        "Custom model fine-tuning",
-        "White-label solutions",
-        "24/7 phone support",
-        "Early beta access",
-        "Advanced analytics dashboard",
+        "🔥 Offline Mode",
+        "Stealth Mode & Encrypted Vault",
+        "AI Agents & Workflow Automation",
+        "Custom Model Fine-Tuning",
+        "White-Label Branding",
+        "Advanced Analytics Dashboard",
+        "Early Beta Access",
+        "24/7 Phone Support",
       ],
       limitations: [],
       cta: "Go Elite",
@@ -185,14 +184,12 @@ const PricingSection = () => {
       highlight: false,
       features: [
         "Everything in Elite +",
-        "🏢 API access for integrations",
-        "Custom knowledge base integration",
-        "Team management & SSO",
-        "Dedicated account manager",
-        "SLA guarantees (99.9% uptime)",
-        "Custom compliance modules",
-        "Volume discounts",
-        "On-premise deployment options",
+        "🏢 API Access",
+        "Custom Knowledge Base",
+        "Team Management & SSO",
+        "Dedicated Account Manager",
+        "SLA Guarantees",
+        "Custom Compliance Modules",
       ],
       limitations: [],
       cta: "Contact Sales",
@@ -274,15 +271,15 @@ const PricingSection = () => {
 
                 {/* Features */}
                 <div className="space-y-2 mb-6">
-                  {plan.features.slice(0, 6).map((feature, featureIndex) => (
+                  {plan.features.slice(0, 8).map((feature, featureIndex) => (
                     <div key={featureIndex} className="flex items-start space-x-2">
                       <Check className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
                       <span className="text-xs">{feature}</span>
                     </div>
                   ))}
-                  {plan.features.length > 6 && (
+                  {plan.features.length > 8 && (
                     <div className="text-xs text-muted-foreground text-center">
-                      +{plan.features.length - 6} more features
+                      +{plan.features.length - 8} more features
                     </div>
                   )}
                   {plan.limitations.map((limitation, limitIndex) => (
