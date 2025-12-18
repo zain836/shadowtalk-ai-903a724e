@@ -1,4 +1,4 @@
-import { Send, Mic, MicOff, Square, Image as ImageIcon, Sparkles, Globe } from "lucide-react";
+import { Send, Mic, MicOff, Square, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/chat/FileUpload";
@@ -19,7 +19,6 @@ interface ChatInputProps {
   isLoading: boolean;
   isListening: boolean;
   onToggleVoice: () => void;
-  onOpenImageGenerator: () => void;
   onStopGeneration: () => void;
   selectedFile: { type: 'image' | 'file'; data: string; name: string; mimeType: string } | null;
   onFileSelect: (file: { type: 'image' | 'file'; data: string; name: string; mimeType: string } | null) => void;
@@ -36,7 +35,6 @@ export const ChatInput = ({
   isLoading,
   isListening,
   onToggleVoice,
-  onOpenImageGenerator,
   onStopGeneration,
   selectedFile,
   onFileSelect,
@@ -58,12 +56,7 @@ export const ChatInput = ({
         <div className="flex items-center gap-3 mb-3">
           <ModeSelector 
             mode={chatMode} 
-            onModeChange={(mode) => {
-              onModeChange(mode);
-              if (mode === 'image') {
-                onOpenImageGenerator();
-              }
-            }}
+            onModeChange={onModeChange}
             disabled={isLoading}
           />
           {chatMode === 'search' && (
@@ -119,23 +112,6 @@ export const ChatInput = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>Voice input</TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={onOpenImageGenerator}
-                    variant="ghost"
-                    size="icon"
-                    className="h-9 w-9 rounded-xl"
-                    disabled={isLoading}
-                  >
-                    <ImageIcon className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Generate image</TooltipContent>
               </Tooltip>
             </TooltipProvider>
             

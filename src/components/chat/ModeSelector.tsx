@@ -1,4 +1,4 @@
-import { Code, Languages, FileText, Bug, Lightbulb, Image, MessageSquare, Pen, Music, Brain, Leaf, Shield, Globe } from "lucide-react";
+import { Code, Languages, FileText, Bug, Lightbulb, MessageSquare, Pen, Music, Brain, Leaf, Shield, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -16,7 +16,6 @@ export type ChatMode =
   | "summarize"
   | "debug"
   | "brainstorm"
-  | "image"
   | "explain"
   | "creative"
   | "music"
@@ -72,13 +71,6 @@ const modes: { value: ChatMode; label: string; icon: React.ReactNode; prompt: st
     icon: <Lightbulb className="h-4 w-4" />,
     prompt: "You are in brainstorming mode. Generate creative ideas, explore possibilities, and think outside the box.",
     color: "text-yellow-500"
-  },
-  { 
-    value: "image", 
-    label: "Generate Image", 
-    icon: <Image className="h-4 w-4" />,
-    prompt: "You are in image description mode. Help users craft detailed image prompts for AI generation.",
-    color: "text-purple-500"
   },
   { 
     value: "explain", 

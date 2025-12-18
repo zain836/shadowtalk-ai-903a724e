@@ -10,7 +10,6 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ConversationSidebar } from "@/components/chat/ConversationSidebar";
 import { CodeCanvas } from "@/components/chat/CodeCanvas";
-import { ImageGenerator } from "@/components/chat/ImageGenerator";
 import { EditMessageDialog } from "@/components/chat/EditMessageDialog";
 import { AdBanner } from "@/components/chat/AdBanner";
 import { AnalyticsDashboard } from "@/components/chat/AnalyticsDashboard";
@@ -89,7 +88,6 @@ const ChatbotPage = () => {
   const [selectedFile, setSelectedFile] = useState<{ type: 'image' | 'file'; data: string; name: string; mimeType: string } | null>(null);
   
   // Modal state
-  const [showImageGenerator, setShowImageGenerator] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showScriptAutomation, setShowScriptAutomation] = useState(false);
   const [showStealthVault, setShowStealthVault] = useState(false);
@@ -107,7 +105,7 @@ const ChatbotPage = () => {
   const { canAccess, checkAccess, getDailyMessageLimit, isProOrHigher, isElite } = useFeatureGating();
   const { isOffline, isOfflineModeAvailable, getOfflineResponse } = useOfflineMode();
   const { requestPermission } = usePushNotifications();
-  const { trackChatMessage, trackImageGeneration, trackVoiceInput, trackTextToSpeech, trackCodeExecution, trackFileUpload, trackModeSwitch, trackConversationCreated } = useUsageTracking();
+  const { trackChatMessage, trackVoiceInput, trackTextToSpeech, trackCodeExecution, trackFileUpload, trackModeSwitch, trackConversationCreated } = useUsageTracking();
   
   // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -276,13 +274,6 @@ const ChatbotPage = () => {
     const limit = getDailyMessageLimit();
     if (limit !== Infinity && dailyChats >= limit) {
       toast({ title: "Daily Limit Reached", description: `Upgrade to Pro for unlimited messages!`, variant: "destructive" });
-      return;
-    }
-    
-    if (messageToSend.trim().toLowerCase().startsWith('/imagine ')) {
-      if (!checkAccess('imageGeneration')) return;
-      setShowImageGenerator(true);
-      setMessage(messageToSend.replace(/^\/imagine\s+/i, ''));
       return;
     }
 
@@ -531,7 +522,6 @@ const ChatbotPage = () => {
             isLoading={isLoading}
             isListening={isListening}
             onToggleVoice={toggleVoiceInput}
-            onOpenImageGenerator={() => setShowImageGenerator(true)}
             onStopGeneration={stopGeneration}
             selectedFile={selectedFile}
             onFileSelect={(file) => { setSelectedFile(file); if (file) trackFileUpload(file.mimeType); }}
@@ -543,23 +533,6 @@ const ChatbotPage = () => {
       </div>
 
       {/* Modals */}
-      {showImageGenerator && (
-        <ImageGenerator
-          onClose={() => setShowImageGenerator(false)}
-          onImageGenerated={(imageUrl, prompt) => {
-            setShowImageGenerator(false);
-            trackImageGeneration(prompt);
-            const content = `Here is the image you requested for \"${prompt}\":\n\n![Generated image](${imageUrl})`;
-            setMessages(prev => [...prev, 
-              { id: crypto.randomUUID(), type: 'user', content: `/imagine ${prompt}`, timestamp: new Date() },
-              { id: crypto.randomUUID(), type: 'ai', content, timestamp: new Date() }
-            ]);
-            saveMessage(`/imagine ${prompt}`, 'user');
-            saveMessage(content, 'assistant');
-          }}
-        />
-      )}
-
       {codeCanvas && <CodeCanvas code={codeCanvas.code} language={codeCanvas.language} onClose={() => { trackCodeExecution(codeCanvas.language); setCodeCanvas(null); }} />}
       {editingMessage && <EditMessageDialog message={editingMessage.content} onSave={(c) => handleEditMessage(editingMessage.index, c)} onCancel={() => setEditingMessage(null)} />}
       {showAnalytics && <AnalyticsDashboard onClose={() => setShowAnalytics(false)} messageCount={messages.length} conversationCount={conversations.length} />}
