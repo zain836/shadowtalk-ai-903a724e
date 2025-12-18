@@ -4,7 +4,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
 import { saveSearchToHistory } from "@/components/chat/SearchHistory";
 import { useToast } from "@/hooks/use-toast";
-import { ChatMode, getModePrompt } from "@/components/chat/ModeSelector";
+import { ChatMode, getModePrompt } from "@/components/chat/mode-helpers.tsx";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -17,6 +17,7 @@ import { ScriptAutomation } from "@/components/chat/ScriptAutomation";
 import { StealthVault } from "@/components/chat/StealthVault";
 import { ModelFineTuning } from "@/components/chat/ModelFineTuning";
 import { WhiteLabelBranding } from "@/components/chat/WhiteLabelBranding";
+import { UniversalHealthSentinel } from "@/components/chat/UniversalHealthSentinel";
 import CognitiveLoadPanel from "@/components/chat/CognitiveLoadPanel";
 import PlanetaryActionPanel from "@/components/chat/PlanetaryActionPanel";
 import SecurityAuditPanel from "@/components/chat/SecurityAuditPanel";
@@ -220,6 +221,42 @@ const ChatbotPage = () => {
           createNewConversation();
         }
       }
+    }
+  };
+
+  const deleteAllConversations = async () => {
+    if (!user || isLoading) return;
+
+    const confirm = window.confirm("Are you sure you want to delete all your conversations? This action cannot be undone.");
+    if (!confirm) return;
+
+    setIsLoading(true);
+    try {
+      const { data: convs, error: convError } = await supabase
+        .from('conversations')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (convError) throw convError;
+
+      const convIds = convs.map(c => c.id);
+
+      if (convIds.length > 0) {
+        const { error: msgError } = await supabase.from('messages').delete().in('conversation_id', convIds);
+        if (msgError) throw msgError;
+
+        const { error: convDelError } = await supabase.from('conversations').delete().in('id', convIds);
+        if (convDelError) throw convDelError;
+      }
+
+      toast({ title: "Success", description: "All conversations have been deleted." });
+      setConversations([]);
+      createNewConversation(); // Start a fresh conversation
+    } catch (error) {
+      console.error("Error deleting all conversations:", error);
+      toast({ title: "Error", description: "Failed to delete all conversations. Please try again.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -448,7 +485,7 @@ const ChatbotPage = () => {
     if (speakingMessageId === messageId && isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); setSpeakingMessageId(null); return; }
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text.replace(/[#*`]/g, '').replace(/\n+/g, ' '));
-    utterance.onstart = () => { setIsSpeaking(true); setSpeakingMessageId(messageId); trackTextToSpeech(); };
+    utterance.onstart = () => { setIsListening(true); setSpeakingMessageId(messageId); trackTextToSpeech(); };
     utterance.onend = () => { setIsSpeaking(false); setSpeakingMessageId(null); };
     window.speechSynthesis.speak(utterance);
   };
@@ -467,7 +504,7 @@ const ChatbotPage = () => {
 
   const maxChats = isProOrHigher ? "∞" : "50";
   const showSuggestions = messages.length <= 1;
-  const isSpecialMode = ['cpf', 'ppag', 'hsca'].includes(chatMode);
+  const isSpecialMode = ['cpf', 'ppag', 'hsca', 'uhs'].includes(chatMode);
 
   return (
     <div className="min-h-screen bg-background">
@@ -481,6 +518,7 @@ const ChatbotPage = () => {
             onSelect={loadConversation}
             onDelete={deleteConversation}
             onClear={clearConversation}
+            onDeleteAll={deleteAllConversations} // Pass the new function
           />
         )}
 
@@ -509,6 +547,7 @@ const ChatbotPage = () => {
           {chatMode === 'cpf' && <CognitiveLoadPanel onAnalyzeTask={handleAnalyzeTask} isAnalyzing={isAnalyzingTask} />}
           {chatMode === 'ppag' && <PlanetaryActionPanel onGetActions={handleGetEcoActions} isLoading={isLoadingEcoActions} />}
           {chatMode === 'hsca' && <SecurityAuditPanel onAnalyze={handleSecurityAudit} isAnalyzing={isAnalyzingSecurity} />}
+          {chatMode === 'uhs' && <UniversalHealthSentinel />}
 
           {/* Messages */}
           {!isSpecialMode && (

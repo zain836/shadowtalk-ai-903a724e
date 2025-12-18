@@ -2,7 +2,8 @@ import { Send, Mic, MicOff, Square, Sparkles, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUpload } from "@/components/chat/FileUpload";
-import { ModeSelector, ChatMode } from "@/components/chat/ModeSelector";
+import { ModeSelector } from "@/components/chat/ModeSelector";
+import { ChatMode } from "@/components/chat/mode-helpers.tsx";
 import { SearchHistory } from "@/components/chat/SearchHistory";
 import {
   Tooltip,

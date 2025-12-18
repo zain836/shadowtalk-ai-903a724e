@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,8 @@ import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 import PWABanner from "./components/PWABanner";
 import CookieConsent from "./components/CookieConsent";
+import HealthSentinelPage from "./pages/HealthSentinelPage";
+import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +43,8 @@ const App = () => (
               <Route path="/rooms" element={<ChatRoomsPage />} />
               <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/health-sentinel" element={<HealthSentinelPage />} />
+              <Route path="/economic-pivot-engine" element={<EconomicPivotEnginePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
             <PWABanner />

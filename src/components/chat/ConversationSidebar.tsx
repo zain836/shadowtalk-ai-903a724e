@@ -15,6 +15,7 @@ interface ConversationSidebarProps {
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
   onClear: () => void;
+  onDeleteAll: () => void;
 }
 
 export const ConversationSidebar = ({
@@ -24,6 +25,7 @@ export const ConversationSidebar = ({
   onSelect,
   onDelete,
   onClear,
+  onDeleteAll,
 }: ConversationSidebarProps) => {
   return (
     <div className="w-60 bg-card/50 backdrop-blur-sm border-r border-border flex flex-col">
@@ -64,6 +66,12 @@ export const ConversationSidebar = ({
           ))}
         </div>
       </ScrollArea>
+      
+      <div className="p-3 mt-auto border-t border-border">
+        <Button onClick={onDeleteAll} variant="destructive" className="w-full" size="sm">
+          <Trash2 className="h-4 w-4 mr-2" /> Delete All Chats
+        </Button>
+      </div>
     </div>
   );
 };

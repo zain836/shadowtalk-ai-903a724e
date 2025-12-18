@@ -1,5 +1,6 @@
+
 import { useState } from "react";
-import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users, MoreVertical, Menu, Trash2 } from "lucide-react";
+import { Bot, ArrowLeft, LogOut, Settings, Download, Lock, MessageSquare, BarChart3, Workflow, Crown, Star, Shield, Zap, Brain, Palette, Users, MoreVertical, Menu, Trash2, HeartPulse, Briefcase } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,17 +31,17 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Heart, Laugh, Briefcase, Sparkles, Search, Lightbulb, Scale, MessageCircle, Target, HelpCircle } from "lucide-react";
+import { Heart, Laugh, Briefcase as BriefcaseIcon, Sparkles, Search, Lightbulb, Scale, MessageCircle, Target, HelpCircle } from "lucide-react";
 import { OfflineModeIndicator } from "./OfflineModeIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useFeatureGating, PlanTier } from "@/hooks/useFeatureGating";
 
 type Personality = "friendly" | "sarcastic" | "professional" | "creative" | "meticulous" | "curious" | "diplomatic" | "witty" | "pragmatic" | "inquisitive";
-type UserPlan = 'free' | 'pro' | 'premium' | 'elite' | 'enterprise';
 
 const personalities: { value: Personality; label: string; icon: React.ReactNode; description: string }[] = [
   { value: "friendly", label: "Friendly", icon: <Heart className="h-4 w-4" />, description: "Warm and enthusiastic with a conversational tone" },
   { value: "sarcastic", label: "Sarcastic", icon: <Laugh className="h-4 w-4" />, description: "Witty and playful with dry humor" },
-  { value: "professional", label: "Professional", icon: <Briefcase className="h-4 w-4" />, description: "Formal and precise with structured responses" },
+  { value: "professional", label: "Professional", icon: <BriefcaseIcon className="h-4 w-4" />, description: "Formal and precise with structured responses" },
   { value: "creative", label: "Creative", icon: <Sparkles className="h-4 w-4" />, description: "Imaginative with vivid metaphors and bold ideas" },
   { value: "meticulous", label: "Meticulous", icon: <Search className="h-4 w-4" />, description: "Detail-oriented auditor ensuring precision" },
   { value: "curious", label: "Curious", icon: <Lightbulb className="h-4 w-4" />, description: "Explores deeply to understand your goals" },
@@ -51,7 +52,6 @@ const personalities: { value: Personality; label: string; icon: React.ReactNode;
 ];
 
 interface ChatHeaderProps {
-  userPlan: UserPlan;
   personality: Personality;
   onPersonalityChange: (personality: Personality) => void;
   onToggleSidebar: () => void;
@@ -68,10 +68,12 @@ interface ChatHeaderProps {
   dailyChats: number;
 }
 
-const getPlanBadgeStyle = (plan: UserPlan) => {
+const getPlanBadgeStyle = (plan: PlanTier) => {
   switch (plan) {
+    case 'enterprise':
     case 'elite':
       return 'bg-gradient-to-r from-amber-500/20 to-orange-500/20 text-amber-400 border-amber-500/30';
+    case 'premium':
     case 'pro':
       return 'bg-gradient-to-r from-primary/20 to-secondary/20 text-primary border-primary/30';
     default:
@@ -79,10 +81,12 @@ const getPlanBadgeStyle = (plan: UserPlan) => {
   }
 };
 
-const getPlanIcon = (plan: UserPlan) => {
+const getPlanIcon = (plan: PlanTier) => {
   switch (plan) {
+    case 'enterprise':
     case 'elite':
       return <Crown className="h-3 w-3" />;
+    case 'premium':
     case 'pro':
       return <Star className="h-3 w-3" />;
     default:
@@ -113,7 +117,6 @@ const MenuItem = ({ icon, label, onClick, disabled, locked }: MenuItemProps) => 
 );
 
 export const ChatHeader = ({
-  userPlan,
   personality,
   onPersonalityChange,
   onToggleSidebar,
@@ -132,8 +135,7 @@ export const ChatHeader = ({
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const isProOrHigher = userPlan === 'pro' || userPlan === 'elite';
-  const isElite = userPlan === 'elite';
+  const { userPlan, isProOrHigher, isElite, isEnterprise } = useFeatureGating();
 
   const handleMenuAction = (action: () => void) => {
     setDrawerOpen(false);
@@ -155,6 +157,13 @@ export const ChatHeader = ({
       {/* Pro Features */}
       <div className="px-2">
         <p className="text-xs text-muted-foreground px-2 py-1 font-medium">Pro Features</p>
+        <MenuItem
+          icon={<HeartPulse className="h-5 w-5 text-red-500" />}
+          label="Health Sentinel"
+          onClick={() => handleMenuAction(() => navigate('/health-sentinel'))}
+          disabled={!isProOrHigher}
+          locked={!isProOrHigher}
+        />
         <MenuItem
           icon={<Users className="h-5 w-5" />}
           label="Collaborative Rooms"
@@ -181,6 +190,13 @@ export const ChatHeader = ({
       {/* Elite Features */}
       <div className="px-2 mt-2">
         <p className="text-xs text-muted-foreground px-2 py-1 font-medium">Elite Features</p>
+        <MenuItem
+          icon={<Briefcase className="h-5 w-5 text-blue-500" />}
+          label="Economic Pivot Engine"
+          onClick={() => handleMenuAction(() => navigate('/economic-pivot-engine'))}
+          disabled={!isElite}
+          locked={!isElite}
+        />
         <MenuItem
           icon={<Brain className="h-5 w-5" />}
           label="Model Fine-Tuning"
@@ -335,6 +351,11 @@ export const ChatHeader = ({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 bg-popover">
+                <DropdownMenuItem onClick={() => navigate('/health-sentinel')} disabled={!isProOrHigher}>
+                    <HeartPulse className="h-4 w-4 mr-2 text-red-500" />
+                    Health Sentinel
+                    {!isProOrHigher && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+                </DropdownMenuItem>
               {/* Pro Features */}
               <DropdownMenuItem onClick={() => navigate('/rooms')} disabled={!isProOrHigher}>
                 <Users className="h-4 w-4 mr-2" />
@@ -355,6 +376,11 @@ export const ChatHeader = ({
               <DropdownMenuSeparator />
 
               {/* Elite Features */}
+              <DropdownMenuItem onClick={() => navigate('/economic-pivot-engine')} disabled={!isElite}>
+                <Briefcase className="h-4 w-4 mr-2 text-blue-500" />
+                Economic Pivot Engine
+                {!isElite && <Lock className="h-3 w-3 ml-auto text-muted-foreground" />}
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={onOpenModelFineTuning} disabled={!isElite}>
                 <Brain className="h-4 w-4 mr-2" />
                 Model Fine-Tuning
