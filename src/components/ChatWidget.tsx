@@ -13,10 +13,33 @@ const ChatWidget = () => {
     {
       id: 1,
       type: "bot",
-      content: "🚀 Welcome! I'm your advanced AI assistant with real-time capabilities. I can generate code, automate tasks, analyze data, and help you build anything. What revolutionary project shall we create today?",
+      content: "Welcome to ShadowTalk AI! I'm here to help you. You can ask me about our features, pricing, or anything else you need to know.",
       timestamp: new Date()
     }
   ]);
+
+  const faqs = [
+    {
+      q: 'What is ShadowTalk AI?',
+      a: 'ShadowTalk AI is an advanced AI chatbot with multimodal capabilities, including voice input and image generation. It\'s designed for creators, coders, and CEOs to enhance their productivity and creativity.'
+    },
+    {
+      q: 'What are the subscription plans?',
+      a: 'We offer a free plan with limited features, a Pro plan with more features and higher limits, and an Elite plan with access to our REST API and all features.'
+    },
+    {
+      q: 'How does offline mode work?',
+      a: 'Elite plan users can access offline mode, which caches your recent conversations and provides limited AI responses using on-device processing. Full functionality requires an internet connection. Install the PWA for the best offline experience.'
+    },
+    {
+        q: "How do collaborative rooms work?",
+        a: "Collaborative rooms allow multiple users to interact with the AI together in real-time. Create a room, share the invite link, and all participants can send messages and see AI responses instantly. Room creators have moderation tools to manage participants."
+    },
+    {
+        q: "What's included in each subscription tier?",
+        a: "Our pricing page has a detailed breakdown of each plan. Generally, higher tiers offer more daily chats, access to advanced features like image generation and API access, and priority support."
+    }
+  ];
 
   const sendMessage = () => {
     if (!message.trim()) return;
@@ -28,27 +51,17 @@ const ChatWidget = () => {
       timestamp: new Date()
     };
 
-    setMessages([...messages, newMessage]);
+    const botResponseContent = faqs.find(faq => message.toLowerCase().includes(faq.q.toLowerCase()))?.a || "I'm sorry, I don't have an answer for that. Please try rephrasing your question or contact support for more information.";
+
+    const botResponse = {
+      id: messages.length + 2,
+      type: "bot",
+      content: botResponseContent,
+      timestamp: new Date()
+    };
+
+    setMessages([...messages, newMessage, botResponse]);
     setMessage("");
-
-    // Simulate realistic bot response with multiple options
-    setTimeout(() => {
-      const responses = [
-        "🔥 Perfect! I can build that for you right now. Which tech stack would you prefer - React, Python, Node.js, or something else? I have access to real-time APIs and can generate production-ready code.",
-        "⚡ Excellent choice! Let me analyze your requirements and create a custom solution. I can automate this entire workflow and save you hours of manual work. Want to see the magic?",
-        "🚀 I love ambitious projects! I can help you build that with cutting-edge AI. Should I generate the frontend, backend, database schema, or all three? I work 10x faster than traditional development.",
-        "💡 Brilliant idea! I have real-time access to the latest frameworks and can create scalable solutions. Let me show you three different approaches and you can choose your favorite.",
-        "🎯 That's exactly what I excel at! I can generate clean, documented code that follows best practices. Plus, I'll include error handling and optimization. Ready to revolutionize your workflow?",
-      ];
-
-      const botResponse = {
-        id: messages.length + 2,
-        type: "bot",
-        content: responses[Math.floor(Math.random() * responses.length)],
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, botResponse]);
-    }, 2000);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
