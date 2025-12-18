@@ -86,6 +86,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
+                  img: ({ node, ...props }) => <img className="max-w-xs rounded-lg border border-border shadow-sm" {...props} />,
                   code({ node, inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '');
                     const codeString = String(children).replace(/\n$/, '');
