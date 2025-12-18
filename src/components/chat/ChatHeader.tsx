@@ -269,7 +269,6 @@ export const ChatHeader = ({
           </div>
           <div className="hidden sm:block">
             <h1 className="text-sm font-semibold">ShadowTalk AI</h1>
-            <p className="text-xs text-muted-foreground">Powered by Gemini</p>
           </div>
         </div>
       </div>
