@@ -205,18 +205,32 @@ const ChatbotPage = () => {
   };
 
   const deleteConversation = async (conversationId: string) => {
-    const { error } = await supabase
-      .from('conversations')
-      .delete()
-      .eq('id', conversationId);
-    
-    if (!error) {
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
+    if (isLoading) return;
+    const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+    if (error) {
+      toast({ title: "Error", description: "Failed to delete conversation", variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Conversation deleted successfully" });
+      const newConversations = conversations.filter(c => c.id !== conversationId);
+      setConversations(newConversations);
       if (currentConversationId === conversationId) {
-        const remaining = conversations.filter(c => c.id !== conversationId);
-        remaining.length > 0 ? loadConversation(remaining[0].id) : createNewConversation();
+        if (newConversations.length > 0) {
+          loadConversation(newConversations[0].id);
+        } else {
+          createNewConversation();
+        }
       }
-      toast({ title: "Conversation deleted" });
+    }
+  };
+
+  const clearConversation = async () => {
+    if (isLoading || !currentConversationId) return;
+    const { error } = await supabase.from('messages').delete().eq('conversation_id', currentConversationId);
+    if (error) {
+      toast({ title: "Error", description: "Failed to clear conversation", variant: "destructive" });
+    } else {
+      toast({ title: "Success", description: "Conversation cleared successfully" });
+      setMessages([]);
     }
   };
 
@@ -466,6 +480,7 @@ const ChatbotPage = () => {
             onCreateNew={createNewConversation}
             onSelect={loadConversation}
             onDelete={deleteConversation}
+            onClear={clearConversation}
           />
         )}
 

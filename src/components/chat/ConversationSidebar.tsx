@@ -1,4 +1,4 @@
-import { Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Plus, MessageSquare, Trash2, Eraser } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -14,6 +14,7 @@ interface ConversationSidebarProps {
   onCreateNew: () => void;
   onSelect: (id: string) => void;
   onDelete: (id: string) => void;
+  onClear: () => void;
 }
 
 export const ConversationSidebar = ({
@@ -22,12 +23,16 @@ export const ConversationSidebar = ({
   onCreateNew,
   onSelect,
   onDelete,
+  onClear,
 }: ConversationSidebarProps) => {
   return (
     <div className="w-60 bg-card/50 backdrop-blur-sm border-r border-border flex flex-col">
-      <div className="p-3">
+      <div className="p-3 flex items-center gap-2">
         <Button onClick={onCreateNew} className="w-full btn-glow" size="sm">
           <Plus className="h-4 w-4 mr-2" /> New Chat
+        </Button>
+        <Button onClick={onClear} variant="outline" size="sm">
+          <Eraser className="h-4 w-4 mr-2" /> Clear
         </Button>
       </div>
       
