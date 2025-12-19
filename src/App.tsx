@@ -24,24 +24,15 @@ import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
 import RealtimeTracker from "./components/RealtimeTracker";
 import { Analytics } from "@vercel/analytics/react";
 import WelcomeSpeech from "./components/WelcomeSpeech";
-import LoadingBar from './components/LoadingBar';
+import BootScreen from './components/BootScreen';
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isBooting, setIsBooting] = useState(true);
 
-  useEffect(() => {
-    // Simulate app loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000); // Adjust time as needed
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return <LoadingBar />;
+  if (isBooting) {
+    return <BootScreen onBootComplete={() => setIsBooting(false)} />;
   }
 
   return (
