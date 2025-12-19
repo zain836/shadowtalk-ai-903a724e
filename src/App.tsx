@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,17 +24,10 @@ import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
 import RealtimeTracker from "./components/RealtimeTracker";
 import { Analytics } from "@vercel/analytics/react";
 import WelcomeSpeech from "./components/WelcomeSpeech";
-import BootScreen from './components/BootScreen';
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isBooting, setIsBooting] = useState(true);
-
-  if (isBooting) {
-    return <BootScreen onBootComplete={() => setIsBooting(false)} />;
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
