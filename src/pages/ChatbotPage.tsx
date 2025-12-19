@@ -25,6 +25,7 @@ import { useFeatureGating } from "@/hooks/useFeatureGating";
 import { useOfflineMode } from "@/hooks/useOfflineMode";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useUsageTracking } from "@/hooks/useUsageTracking";
+import { trackTotalMessages } from "@/lib/statsTracker";
 
 // Types
 interface SpeechRecognitionEvent extends Event {
@@ -327,6 +328,8 @@ const ChatbotPage = () => {
       toast({ title: "Daily Limit Reached", description: `Upgrade to Pro for unlimited messages!`, variant: "destructive" });
       return;
     }
+
+    trackTotalMessages();
 
     const isNewConversation = messages.length <= 1;
 

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { trackNewSignUp } from "@/lib/statsTracker";
 
 const AuthPage = () => {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ const AuthPage = () => {
           options: { emailRedirectTo: `${window.location.origin}/` }
         });
         if (error) throw error;
+        trackNewSignUp();
         toast({ title: "Success", description: data.session ? "Account created!" : "Check your email to confirm!" });
         if (data.session) navigate('/chatbot');
       }

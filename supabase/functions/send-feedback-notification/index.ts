@@ -42,26 +42,9 @@ const handler = async (req: Request): Promise<Response> => {
     const { feedbackId, category, rating, message, userEmail }: FeedbackNotificationRequest = await req.json();
     console.log("[FEEDBACK-NOTIFICATION] Received feedback:", { feedbackId, category, rating });
 
-    // Get admin emails from user_roles table
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
-
-    const { data: adminRoles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('user_id')
-      .eq('role', 'admin');
-
-    if (rolesError) {
-      console.error("[FEEDBACK-NOTIFICATION] Error fetching admin roles:", rolesError);
-      throw rolesError;
-    }
-
-    console.log("[FEEDBACK-NOTIFICATION] Found admin roles:", adminRoles?.length);
-
     // For now, send to a default admin email if configured
     // In production, you'd want to fetch admin emails from profiles or a config
-    const adminEmail = Deno.env.get("ADMIN_EMAIL") || "admin@example.com";
+    const adminEmail = "zaim98269@gmail.com";
 
     const emailHtml = `
       <!DOCTYPE html>

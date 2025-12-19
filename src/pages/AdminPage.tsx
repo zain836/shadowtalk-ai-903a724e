@@ -1,593 +1,246 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/components/AuthProvider';
-import { useAdminCheck } from '@/hooks/useAdminCheck';
-import { supabase } from '@/integrations/supabase/client';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { 
-  Users, 
-  MessageSquare, 
-  BarChart3, 
-  Shield,
-  ArrowLeft,
-  Trash2,
-  Crown,
-  Zap,
-  MessageSquareHeart,
-  Star,
-  Bug,
-  Lightbulb,
-  HelpCircle,
-  CheckCircle,
-  Clock,
-  XCircle
-} from 'lucide-react';
-import { toast } from 'sonner';
-import { format } from 'date-fns';
-import { FeedbackAnalytics } from '@/components/FeedbackAnalytics';
+import { useState, useEffect } from "react";
+import { Shield, Users, MessageSquare, TrendingUp, UserCheck, Zap, DollarSign, Activity, HeartPulse } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
+import Navigation from "@/components/Navigation";
+import Footer from "@/components/Footer";
+import { db } from "@/lib/firebase";
+import { ref, onValue } from "firebase/database";
+import { supabase } from "@/integrations/supabase/client";
 
-interface UserData {
-  id: string;
-  email: string;
-  created_at: string;
-  last_sign_in_at: string | null;
-}
 
-interface ConversationData {
-  id: string;
-  title: string;
-  user_id: string;
-  created_at: string;
-  updated_at: string;
-  message_count?: number;
-}
+// Helper to format data for charts
+const processUserFlowData = (data) => {
+  const monthly = {};
+  const yearly = {};
 
-interface SubscriberData {
-  id: string;
-  email: string;
-  user_id: string | null;
-  subscribed: boolean | null;
-  subscription_tier: string | null;
-  subscription_end: string | null;
-  created_at: string;
-}
+  data.forEach(item => {
+    const date = new Date(item.created_at);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const yearKey = date.getFullYear().toString();
 
-interface FeedbackData {
-  id: string;
-  user_id: string | null;
-  email: string | null;
-  category: string;
-  rating: number | null;
-  message: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-}
+    if (!monthly[monthKey]) monthly[monthKey] = 0;
+    monthly[monthKey]++;
 
-const getCategoryIcon = (category: string) => {
-  switch (category) {
-    case 'bug':
-      return <Bug className="h-4 w-4 text-destructive" />;
-    case 'feature':
-      return <Lightbulb className="h-4 w-4 text-yellow-500" />;
-    case 'improvement':
-      return <Zap className="h-4 w-4 text-blue-500" />;
-    default:
-      return <HelpCircle className="h-4 w-4 text-muted-foreground" />;
-  }
+    if (!yearly[yearKey]) yearly[yearKey] = 0;
+    yearly[yearKey]++;
+  });
+
+  const formatForChart = (aggData) => Object.keys(aggData).sort().map(key => ({ name: key, users: aggData[key] }));
+
+  return { monthly: formatForChart(monthly), yearly: formatForChart(yearly) };
 };
 
-const getStatusBadge = (status: string) => {
-  switch (status) {
-    case 'resolved':
-      return <Badge className="bg-green-500/20 text-green-500 border-green-500/30"><CheckCircle className="h-3 w-3 mr-1" />Resolved</Badge>;
-    case 'in_progress':
-      return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/30"><Clock className="h-3 w-3 mr-1" />In Progress</Badge>;
-    case 'dismissed':
-      return <Badge className="bg-muted text-muted-foreground border-border"><XCircle className="h-3 w-3 mr-1" />Dismissed</Badge>;
-    default:
-      return <Badge variant="outline"><Clock className="h-3 w-3 mr-1" />Pending</Badge>;
-  }
-};
 
 const AdminPage = () => {
-  const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdminCheck();
-  
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [conversations, setConversations] = useState<ConversationData[]>([]);
-  const [subscribers, setSubscribers] = useState<SubscriberData[]>([]);
-  const [feedback, setFeedback] = useState<FeedbackData[]>([]);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalConversations: 0,
-    totalMessages: 0,
-    activeSubscribers: 0,
-    proSubscribers: 0,
-    eliteSubscribers: 0,
-    totalFeedback: 0,
-    pendingFeedback: 0,
-  });
-  const [loadingData, setLoadingData] = useState(true);
+  const [stats, setStats] = useState({ totalMessages: 0, newSignups: 0, proUsers: 0, eliteUsers: 0, feedbackCount: 0, totalEarnings: 0 });
+  const [realTime, setRealTime] = useState({ activeUsers: 0, pages: {} });
+  const [users, setUsers] = useState([]);
+  const [userFlow, setUserFlow] = useState({ monthly: [], yearly: [] });
 
+  // Real-time listeners from Firebase
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate('/auth');
-    }
-  }, [authLoading, user, navigate]);
+    const statusRef = ref(db, 'status');
+    const activityRef = ref(db, 'activity');
+    const statsRef = ref(db, 'stats');
 
-  useEffect(() => {
-    if (!adminLoading && !isAdmin && user) {
-      toast.error('Access denied. Admin privileges required.');
-      navigate('/chatbot');
-    }
-  }, [adminLoading, isAdmin, user, navigate]);
+    const unsubscribeStatus = onValue(statusRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const userList = Object.keys(data).map(uid => ({ id: uid, ...data[uid] }));
+      setUsers(userList);
+      const activeUsers = userList.filter(u => u.state === 'online').length;
+      setRealTime(prev => ({ ...prev, activeUsers }));
+    });
 
-  useEffect(() => {
-    if (isAdmin) {
-      fetchAllData();
-    }
-  }, [isAdmin]);
-
-  const fetchAllData = async () => {
-    setLoadingData(true);
-    try {
-      // Fetch conversations
-      const { data: convData, error: convError } = await supabase
-        .from('conversations')
-        .select('*')
-        .order('updated_at', { ascending: false });
-
-      if (convError) throw convError;
-      setConversations(convData || []);
-
-      // Fetch messages count per conversation
-      const { data: msgData, error: msgError } = await supabase
-        .from('messages')
-        .select('conversation_id');
-
-      if (msgError) throw msgError;
-
-      // Count messages per conversation
-      const msgCounts: Record<string, number> = {};
-      msgData?.forEach(msg => {
-        msgCounts[msg.conversation_id] = (msgCounts[msg.conversation_id] || 0) + 1;
+    const unsubscribeActivity = onValue(activityRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      const pageCounts = {};
+      Object.values(data).forEach((activity: any) => {
+        const page = activity.currentPage || 'unknown';
+        pageCounts[page] = (pageCounts[page] || 0) + 1;
       });
+      setRealTime(prev => ({ ...prev, pages: pageCounts }));
+    });
 
-      // Update conversations with message counts
-      setConversations(prev => prev.map(conv => ({
-        ...conv,
-        message_count: msgCounts[conv.id] || 0
-      })));
+    const unsubscribeStats = onValue(statsRef, (snapshot) => {
+      const data = snapshot.val() || {};
+      setStats(prev => ({ ...prev, ...data }));
+    });
 
-      // Fetch subscribers
-      const { data: subData, error: subError } = await supabase
-        .from('subscribers')
-        .select('*')
-        .order('created_at', { ascending: false });
+    return () => {
+      unsubscribeStatus();
+      unsubscribeActivity();
+      unsubscribeStats();
+    };
+  }, []);
 
-      if (subError) throw subError;
-      setSubscribers(subData || []);
+  // Data fetching from Supabase
+  useEffect(() => {
+    const fetchData = async () => {
+      // Fetch total earnings from referrals
+      const { data: earningsData, error: earningsError } = await supabase
+        .from('referrals')
+        .select('commission_amount')
+        .eq('status', 'paid_out');
+      
+      if (earningsData) {
+        const totalEarnings = earningsData.reduce((acc, item) => acc + item.commission_amount, 0);
+        setStats(prev => ({...prev, totalEarnings}));
+      }
 
-      // Fetch feedback
-      const { data: feedbackData, error: feedbackError } = await supabase
-        .from('feedback')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Fetch user flow data
+      const { data: usageData, error: usageError } = await supabase
+        .from('usage_analytics')
+        .select('created_at')
+        .eq('action_type', 'user_login'); // Assuming 'user_login' tracks flow
 
-      if (feedbackError) throw feedbackError;
-      setFeedback(feedbackData || []);
+      if (usageData) {
+        const processedData = processUserFlowData(usageData);
+        setUserFlow(processedData);
+      }
+    };
 
-      // Calculate stats
-      const uniqueUserIds = new Set(convData?.map(c => c.user_id) || []);
-      setStats({
-        totalUsers: uniqueUserIds.size,
-        totalConversations: convData?.length || 0,
-        totalMessages: msgData?.length || 0,
-        activeSubscribers: subData?.filter(s => s.subscribed).length || 0,
-        proSubscribers: subData?.filter(s => s.subscription_tier === 'pro').length || 0,
-        eliteSubscribers: subData?.filter(s => s.subscription_tier === 'elite').length || 0,
-        totalFeedback: feedbackData?.length || 0,
-        pendingFeedback: feedbackData?.filter(f => f.status === 'pending').length || 0,
-      });
+    fetchData();
+  }, []);
 
-    } catch (error) {
-      console.error('Error fetching admin data:', error);
-      toast.error('Failed to load admin data');
-    } finally {
-      setLoadingData(false);
-    }
-  };
-
-  const handleDeleteConversation = async (conversationId: string) => {
-    if (!confirm('Are you sure you want to delete this conversation and all its messages?')) return;
-
-    try {
-      // Delete messages first
-      const { error: msgError } = await supabase
-        .from('messages')
-        .delete()
-        .eq('conversation_id', conversationId);
-
-      if (msgError) throw msgError;
-
-      // Delete conversation
-      const { error: convError } = await supabase
-        .from('conversations')
-        .delete()
-        .eq('id', conversationId);
-
-      if (convError) throw convError;
-
-      setConversations(prev => prev.filter(c => c.id !== conversationId));
-      toast.success('Conversation deleted');
-    } catch (error) {
-      console.error('Error deleting conversation:', error);
-      toast.error('Failed to delete conversation');
-    }
-  };
-
-  const handleUpdateFeedbackStatus = async (feedbackId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('feedback')
-        .update({ status: newStatus })
-        .eq('id', feedbackId);
-
-      if (error) throw error;
-
-      setFeedback(prev => prev.map(f => 
-        f.id === feedbackId ? { ...f, status: newStatus } : f
-      ));
-      toast.success(`Feedback marked as ${newStatus}`);
-    } catch (error) {
-      console.error('Error updating feedback:', error);
-      toast.error('Failed to update feedback status');
-    }
-  };
-
-  const handleDeleteFeedback = async (feedbackId: string) => {
-    if (!confirm('Are you sure you want to delete this feedback?')) return;
-
-    try {
-      const { error } = await supabase
-        .from('feedback')
-        .delete()
-        .eq('id', feedbackId);
-
-      if (error) throw error;
-
-      setFeedback(prev => prev.filter(f => f.id !== feedbackId));
-      toast.success('Feedback deleted');
-    } catch (error) {
-      console.error('Error deleting feedback:', error);
-      toast.error('Failed to delete feedback');
-    }
-  };
-
-  if (authLoading || adminLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Shield className="h-12 w-12 text-primary animate-pulse mx-auto" />
-          <p className="text-muted-foreground">Verifying admin access...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return null;
-  }
+  const healthScore = Math.round(((realTime.activeUsers / 50) * 0.4 + (stats.newSignups / 10) * 0.3 + (stats.totalMessages / 1000) * 0.3) * 100);
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/chatbot')}>
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-2">
-              <Shield className="h-6 w-6 text-primary" />
-              <h1 className="text-xl font-bold">Admin Panel</h1>
-            </div>
+      <Navigation />
+      <main className="pt-24 pb-12 px-4 md:px-8 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <Shield className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">ShadowTalk AI Analytics & Management</p>
           </div>
-          <Badge variant="outline" className="border-primary text-primary">
-            {user?.email}
-          </Badge>
-        </div>
-      </header>
-
-      <main className="container mx-auto px-4 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Users</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loadingData ? <Skeleton className="h-8 w-16" /> : (
-                <p className="text-2xl font-bold">{stats.totalUsers}</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Conversations</CardTitle>
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loadingData ? <Skeleton className="h-8 w-16" /> : (
-                <p className="text-2xl font-bold">{stats.totalConversations}</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Messages</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loadingData ? <Skeleton className="h-8 w-16" /> : (
-                <p className="text-2xl font-bold">{stats.totalMessages}</p>
-              )}
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Active Subscribers</CardTitle>
-              <Crown className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loadingData ? <Skeleton className="h-8 w-16" /> : (
-                <div className="flex items-center gap-2">
-                  <p className="text-2xl font-bold">{stats.activeSubscribers}</p>
-                  <div className="flex gap-1">
-                    <Badge variant="secondary" className="text-xs">
-                      <Zap className="h-3 w-3 mr-1" />
-                      {stats.proSubscribers} Pro
-                    </Badge>
-                    <Badge className="text-xs bg-gradient-primary">
-                      <Crown className="h-3 w-3 mr-1" />
-                      {stats.eliteSubscribers} Elite
-                    </Badge>
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="feedback" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="feedback" className="gap-2">
-              <MessageSquareHeart className="h-4 w-4" />
-              Feedback
-              {stats.pendingFeedback > 0 && (
-                <Badge variant="destructive" className="ml-1 h-5 w-5 p-0 flex items-center justify-center text-xs">
-                  {stats.pendingFeedback}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="subscribers" className="gap-2">
-              <Crown className="h-4 w-4" />
-              Subscribers
-            </TabsTrigger>
-            <TabsTrigger value="conversations" className="gap-2">
-              <MessageSquare className="h-4 w-4" />
-              Conversations
-            </TabsTrigger>
+        <Tabs defaultValue="dashboard">
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-3 mb-6">
+            <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="feedback">
-            {/* Analytics Charts */}
-            {!loadingData && feedback.length > 0 && (
-              <FeedbackAnalytics feedback={feedback} />
-            )}
+          <TabsContent value="dashboard">
+             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <StatCard title="Total Earnings" value={`$${stats.totalEarnings.toFixed(2)}`} icon={<DollarSign className="h-4 w-4 text-muted-foreground"/>} description="From referral commissions" />
+                <StatCard title="Total Messages" value={stats.totalMessages.toLocaleString()} icon={<MessageSquare className="h-4 w-4 text-muted-foreground"/>} description="+12% this week" />
+                <StatCard title="New Signups (24h)" value={stats.newSignups} icon={<UserCheck className="h-4 w-4 text-muted-foreground"/>} />
+                <StatCard title="Active Users" value={realTime.activeUsers} icon={<Users className="h-4 w-4 text-muted-foreground"/>} description="Currently online" />
+            </div>
+            <div className="grid gap-4 mt-6 md:grid-cols-3 lg:grid-cols-5">
+              <Card className="md:col-span-3 lg:col-span-3 row-span-2 bg-muted/20 flex flex-col">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2"><Zap className="h-5 w-5 text-green-500" />Real-Time User Flow</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow flex flex-col justify-between gap-4">
+                    <div className="space-y-2">
+                        {Object.entries(realTime.pages).length > 0 ? Object.entries(realTime.pages).map(([page, count]) => (
+                            count > 0 && (
+                                <div key={page}>
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="text-sm font-medium">{page}</span>
+                                        <span className="text-sm text-muted-foreground">{count} users</span>
+                                    </div>
+                                    <Progress value={(count / (realTime.activeUsers || 1)) * 100} className="h-2" />
+                                </div>
+                            )
+                        )) : <p className="text-sm text-muted-foreground text-center py-8">No user activity detected.</p>}
+                    </div>
+                </CardContent>
+              </Card>
 
+               <Card className="md:col-span-2 lg:col-span-2 row-span-2 flex flex-col justify-center items-center">
+                <CardHeader className="text-center">
+                    <CardTitle className="flex items-center gap-2"><HeartPulse className="h-5 w-5"/>Website Health</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="w-40 h-40 flex items-center justify-center rounded-full bg-gradient-to-tr from-primary/10 to-primary/30">
+                        <div className="w-32 h-32 flex items-center justify-center rounded-full bg-background">
+                            <p className="text-4xl font-bold text-primary">{Math.min(100, healthScore)}<span className="text-2xl">%</span></p>
+                        </div>
+                    </div>
+                    <p className="text-center text-sm text-muted-foreground mt-4">Based on activity & growth</p>
+                </CardContent>
+            </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MessageSquareHeart className="h-5 w-5 text-primary" />
-                  User Feedback
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingData ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-24 w-full" />
-                    ))}
-                  </div>
-                ) : feedback.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No feedback yet</p>
-                ) : (
-                  <div className="space-y-4">
-                    {feedback.map(item => (
-                      <div 
-                        key={item.id} 
-                        className="p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors space-y-3"
-                      >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            {getCategoryIcon(item.category)}
-                            <div>
-                              <p className="font-medium capitalize">{item.category.replace('_', ' ')}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {item.email || 'Anonymous'} • {format(new Date(item.created_at), 'MMM d, yyyy h:mm a')}
-                              </p>
+                <CardHeader><CardTitle className="flex items-center gap-2"><Activity className="h-5 w-5"/>User Flow</CardTitle></CardHeader>
+                <CardContent>
+                    <Tabs defaultValue="monthly">
+                        <TabsList>
+                            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+                            <TabsTrigger value="yearly">Yearly</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="monthly">
+                            <div className="h-[400px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={userFlow.monthly}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Bar dataKey="users" fill="#8884d8" /></BarChart>
+                                </ResponsiveContainer>
                             </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {item.rating && (
-                              <div className="flex items-center gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    className={`h-4 w-4 ${i < item.rating! ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground'}`}
-                                  />
-                                ))}
-                              </div>
-                            )}
-                            {getStatusBadge(item.status)}
-                          </div>
-                        </div>
-                        
-                        <p className="text-sm text-foreground/90 pl-7">{item.message}</p>
-                        
-                        <div className="flex items-center gap-2 pl-7 pt-2">
-                          <Select
-                            value={item.status}
-                            onValueChange={(value) => handleUpdateFeedbackStatus(item.id, value)}
-                          >
-                            <SelectTrigger className="w-[140px] h-8 text-xs">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="pending">Pending</SelectItem>
-                              <SelectItem value="in_progress">In Progress</SelectItem>
-                              <SelectItem value="resolved">Resolved</SelectItem>
-                              <SelectItem value="dismissed">Dismissed</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => handleDeleteFeedback(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
+                        </TabsContent>
+                        <TabsContent value="yearly">
+                            <div className="h-[400px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={userFlow.yearly}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Legend /><Line type="monotone" dataKey="users" stroke="#82ca9d" /></LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
+                </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="subscribers">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscriber Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingData ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : subscribers.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No subscribers yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {subscribers.map(sub => (
-                      <div 
-                        key={sub.id} 
-                        className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors"
-                      >
-                        <div className="space-y-1">
-                          <p className="font-medium">{sub.email}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Joined: {new Date(sub.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {sub.subscribed ? (
-                            <>
-                              <Badge className={sub.subscription_tier === 'elite' ? 'bg-gradient-primary' : ''}>
-                                {sub.subscription_tier === 'elite' ? (
-                                  <><Crown className="h-3 w-3 mr-1" /> Elite</>
-                                ) : (
-                                  <><Zap className="h-3 w-3 mr-1" /> Pro</>
-                                )}
-                              </Badge>
-                              {sub.subscription_end && (
-                                <span className="text-xs text-muted-foreground">
-                                  Until {new Date(sub.subscription_end).toLocaleDateString()}
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <Badge variant="outline">Free</Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="conversations">
-            <Card>
-              <CardHeader>
-                <CardTitle>Conversation Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loadingData ? (
-                  <div className="space-y-2">
-                    {[...Array(5)].map((_, i) => (
-                      <Skeleton key={i} className="h-16 w-full" />
-                    ))}
-                  </div>
-                ) : conversations.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">No conversations yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {conversations.map(conv => (
-                      <div 
-                        key={conv.id} 
-                        className="flex items-center justify-between p-4 rounded-lg border border-border bg-card/50 hover:bg-card transition-colors"
-                      >
-                        <div className="space-y-1 flex-1">
-                          <p className="font-medium">{conv.title || 'Untitled Conversation'}</p>
-                          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                            <span>{conv.message_count || 0} messages</span>
-                            <span>Updated: {new Date(conv.updated_at).toLocaleDateString()}</span>
-                          </div>
-                        </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => handleDeleteConversation(conv.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+          <TabsContent value="users">
+             <Card>
+                <CardHeader>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>View, search, and manage all registered users.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader><TableRow><TableHead>Email</TableHead><TableHead>Status</TableHead><TableHead>Last Seen</TableHead></TableRow></TableHeader>
+                        <TableBody>
+                            {users.map(user => (
+                                <TableRow key={user.id}>
+                                    <TableCell className="font-medium">{user.email || 'N/A'}</TableCell>
+                                    <TableCell><Badge variant={user.state === 'online' ? 'success' : 'secondary'}>{user.state}</Badge></TableCell>
+                                    <TableCell>{new Date(user.last_changed).toLocaleString()}</TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+             </Card>
           </TabsContent>
         </Tabs>
       </main>
+      <Footer />
     </div>
   );
 };
+
+const StatCard = ({ title, value, icon, description }) => (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        {icon}
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{value}</div>
+        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+      </CardContent>
+    </Card>
+  );
 
 export default AdminPage;

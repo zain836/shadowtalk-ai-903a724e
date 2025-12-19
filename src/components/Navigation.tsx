@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User } from "lucide-react";
+import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { FeedbackForm } from "@/components/FeedbackForm";
+import { useAuth } from "@/components/AuthProvider"; // Corrected import path
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user } = useAuth(); // Corrected hook usage
 
-  const navItems = [
+  let navItems = [
     { name: "Features", href: "#features", icon: Zap, isLink: false },
     { name: "Pricing", href: "/pricing", icon: Shield, isLink: true },
     { name: "Docs", href: "/docs", icon: BookOpen, isLink: true },
@@ -17,12 +19,26 @@ const Navigation = () => {
     { name: "Profile", href: "/profile", icon: User, isLink: true },
   ];
 
+  // Add Admin link if the user is the specified admin
+  if (user && user.email === "j3451500@gmail.com") {
+    navItems.push({ name: "Admin", href: "/admin", icon: Settings, isLink: true });
+  }
+
   const handleNavClick = (item: typeof navItems[0]) => {
     if (item.isLink) {
       navigate(item.href);
     } else {
-      document.getElementById(item.href.substring(1))?.scrollIntoView({ behavior: 'smooth' });
+      const element = document.getElementById(item.href.substring(1));
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      } else {
+        navigate('/');
+        setTimeout(() => {
+            document.getElementById(item.href.substring(1))?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
     }
+    setIsMenuOpen(false);
   };
 
   return (
@@ -42,12 +58,12 @@ const Navigation = () => {
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-6">
             {navItems.map((item) => (
               <button
                 key={item.name}
                 onClick={() => handleNavClick(item)}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors"
+                className="flex items-center space-x-2 text-muted-foreground hover:text-primary transition-colors text-sm font-medium"
               >
                 <item.icon className="h-4 w-4" />
                 <span>{item.name}</span>
@@ -58,20 +74,32 @@ const Navigation = () => {
           {/* CTA Buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <FeedbackForm />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/auth')}
-            >
-              Login
-            </Button>
-            <Button
-              size="sm"
-              className="btn-glow"
-              onClick={() => navigate('/chatbot')}
-            >
-              Try Free
-            </Button>
+            {!user ? (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate('/auth')}
+                >
+                  Login
+                </Button>
+                <Button
+                  size="sm"
+                  className="btn-glow"
+                  onClick={() => navigate('/chatbot')}
+                >
+                  Try Free
+                </Button>
+              </>
+            ) : (
+                <Button
+                  size="sm"
+                  className="btn-glow"
+                  onClick={() => navigate('/chatbot')}
+                >
+                  Go to App
+                </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -90,10 +118,7 @@ const Navigation = () => {
               {navItems.map((item) => (
                 <button
                   key={item.name}
-                  onClick={() => {
-                    handleNavClick(item);
-                    setIsMenuOpen(false);
-                  }}
+                  onClick={() => handleNavClick(item)}
                   className="flex items-center space-x-3 text-muted-foreground hover:text-primary transition-colors w-full text-left"
                 >
                   <item.icon className="h-5 w-5" />
@@ -101,27 +126,30 @@ const Navigation = () => {
                 </button>
               ))}
               <div className="flex flex-col space-y-3 pt-4 border-t border-border">
-                <FeedbackForm />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    navigate('/auth');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  Login
-                </Button>
-                <Button
-                  size="sm"
-                  className="btn-glow"
-                  onClick={() => {
-                    navigate('/chatbot');
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  Try Free
-                </Button>
+                 {!user ? (
+                  <>
+                    <FeedbackForm />
+                    <Button
+                      variant="outline"
+                      onClick={() => { navigate('/auth'); setIsMenuOpen(false); }}
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      className="btn-glow"
+                       onClick={() => { navigate('/chatbot'); setIsMenuOpen(false); }}
+                    >
+                      Try Free
+                    </Button>
+                  </>
+                 ) : (
+                    <Button
+                      className="btn-glow"
+                      onClick={() => { navigate('/chatbot'); setIsMenuOpen(false); }}
+                    >
+                      Go to App
+                    </Button>
+                 )}
               </div>
             </div>
           </div>

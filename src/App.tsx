@@ -21,6 +21,7 @@ import PWABanner from "./components/PWABanner";
 import CookieConsent from "./components/CookieConsent";
 import HealthSentinelPage from "./pages/HealthSentinelPage";
 import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
+import RealtimeTracker from "./components/RealtimeTracker";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <RealtimeTracker />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<AuthPage />} />

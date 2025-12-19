@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => ({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MiB
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/fonts\\.googleapis\\.com\/.*/i,
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "google-fonts-cache",
@@ -70,7 +70,7 @@ export default defineConfig(({ mode }) => ({
             }
           },
           {
-            urlPattern: /^https:\/\/fonts\\.gstatic\\.com\/.*/i,
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
             handler: "CacheFirst",
             options: {
               cacheName: "gstatic-fonts-cache",
@@ -84,7 +84,6 @@ export default defineConfig(({ mode }) => ({
             }
           }
         ],
-        importScripts: ["sw.js"]
       },
       devOptions: {
         enabled: true
