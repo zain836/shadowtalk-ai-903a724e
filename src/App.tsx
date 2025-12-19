@@ -25,6 +25,7 @@ import RealtimeTracker from "./components/RealtimeTracker";
 import { Analytics } from "@vercel/analytics/react";
 import WelcomeSpeech from "./components/WelcomeSpeech";
 import BootScreen from './components/BootScreen';
+import AboutDevPage from './pages/AboutDev';
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => {
                 <Route path="/admin" element={<AdminPage />} />
                 <Route path="/docs" element={<DocsPage />} />
                 <Route path="/changelog" element={<ChangelogPage />} />
+                <Route path="/about-dev" element={<AboutDevPage />} />
                 <Route path="/rooms" element={<ChatRoomsPage />} />
                 <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
                 <Route path="/profile" element={<ProfilePage />} />

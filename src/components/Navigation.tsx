@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User, Settings } from "lucide-react";
+import { Menu, X, Bot, Zap, Shield, BookOpen, Users, History, User, Settings, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { FeedbackForm } from "@/components/FeedbackForm";
@@ -15,6 +15,7 @@ const Navigation = () => {
     { name: "Pricing", href: "/pricing", icon: Shield, isLink: true },
     { name: "Docs", href: "/docs", icon: BookOpen, isLink: true },
     { name: "Changelog", href: "/changelog", icon: History, isLink: true },
+    { name: "About DEV", href: "/about-dev", icon: Info, isLink: true },
     { name: "Rooms", href: "/rooms", icon: Users, isLink: true },
     { name: "Profile", href: "/profile", icon: User, isLink: true },
   ];
