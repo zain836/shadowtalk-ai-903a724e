@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,19 +24,24 @@ import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
 import RealtimeTracker from "./components/RealtimeTracker";
 import { Analytics } from "@vercel/analytics/react";
 import WelcomeSpeech from "./components/WelcomeSpeech";
-import BootScreen from './components/BootScreen';
+import LoadingBar from './components/LoadingBar';
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [isBooting, setIsBooting] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleBootComplete = () => {
-    setIsBooting(false);
-  };
+  useEffect(() => {
+    // Simulate app loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000); // Adjust time as needed
 
-  if (isBooting) {
-    return <BootScreen onBootComplete={handleBootComplete} />;
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingBar />;
   }
 
   return (
