@@ -1,4 +1,4 @@
-
+import React, { useState } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,40 +22,57 @@ import CookieConsent from "./components/CookieConsent";
 import HealthSentinelPage from "./pages/HealthSentinelPage";
 import EconomicPivotEnginePage from "./pages/EconomicPivotEnginePage";
 import RealtimeTracker from "./components/RealtimeTracker";
+import { Analytics } from "@vercel/analytics/react";
+import WelcomeSpeech from "./components/WelcomeSpeech";
+import BootScreen from './components/BootScreen';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
-      <TooltipProvider>
-        <AuthProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <RealtimeTracker />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/chatbot" element={<ChatbotPage />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/docs" element={<DocsPage />} />
-              <Route path="/changelog" element={<ChangelogPage />} />
-              <Route path="/rooms" element={<ChatRoomsPage />} />
-              <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
-              <Route path="/profile" element={<ProfilePage />} />
-              <Route path="/health-sentinel" element={<HealthSentinelPage />} />
-              <Route path="/economic-pivot-engine" element={<EconomicPivotEnginePage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <PWABanner />
-            <CookieConsent />
-          </BrowserRouter>
-        </AuthProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [isBooting, setIsBooting] = useState(true);
+
+  const handleBootComplete = () => {
+    setIsBooting(false);
+  };
+
+  if (isBooting) {
+    return <BootScreen onBootComplete={handleBootComplete} />;
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+        <TooltipProvider>
+          <AuthProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <WelcomeSpeech />
+              <RealtimeTracker />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/chatbot" element={<ChatbotPage />} />
+                <Route path="/admin" element={<AdminPage />} />
+                <Route path="/docs" element={<DocsPage />} />
+                <Route path="/changelog" element={<ChangelogPage />} />
+                <Route path="/rooms" element={<ChatRoomsPage />} />
+                <Route path="/rooms/:roomId" element={<CollaborativeRoom />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="/health-sentinel" element={<HealthSentinelPage />} />
+                <Route path="/economic-pivot-engine" element={<EconomicPivotEnginePage />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <PWABanner />
+              <CookieConsent />
+              <Analytics />
+            </BrowserRouter>
+          </AuthProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

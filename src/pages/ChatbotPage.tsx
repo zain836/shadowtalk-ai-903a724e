@@ -2,9 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/components/AuthProvider";
 import { supabase } from "@/integrations/supabase/client";
-import { saveSearchToHistory } from "@/components/chat/SearchHistory";
+import { saveSearchToHistory, SearchHistory } from "@/components/chat/SearchHistory";
 import { useToast } from "@/hooks/use-toast";
-import { ChatMode, getModePrompt } from "@/components/chat/mode-helpers.tsx";
+import { ChatMode, getModePrompt } from "@/components/chat/mode-helpers";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -346,9 +346,8 @@ const ChatbotPage = () => {
     setDailyChats(prev => prev + 1);
     setIsLoading(true);
 
-    // Track the chat message
     trackChatMessage(
-      chatMode as 'general' | 'code' | 'translate' | 'summarize' | 'debug' | 'brainstorm' | 'image' | 'explain' | 'creative' | 'music',
+      chatMode,
       personality,
       messageToSend.length,
       !!attachmentToSend,
@@ -358,7 +357,6 @@ const ChatbotPage = () => {
     abortControllerRef.current = new AbortController();
     await saveMessage(messageToSend, 'user');
 
-    // Offline mode
     if (isOffline && isOfflineModeAvailable) {
       const offlineResponse = getOfflineResponse(messageToSend);
       setMessages(prev => [...prev, { id: crypto.randomUUID(), type: "ai", content: offlineResponse, timestamp: new Date() }]);
@@ -366,93 +364,106 @@ const ChatbotPage = () => {
       return;
     }
 
-    let assistantContent = "";
-
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const buildMessageContent = (msg: Message): MessageContent => {
-        if (msg.attachment?.type === 'image') {
-          return [{ type: "text", text: msg.content || "What's in this image?" }, { type: "image_url", image_url: { url: msg.attachment.data } }];
-        }
-        return msg.content;
-      };
-
-      const chatMessages = messages.filter(m => m.id !== 'welcome').map(m => ({ 
-        role: m.type === "user" ? "user" : "assistant", 
-        content: buildMessageContent(m)
-      }));
-      chatMessages.push({ role: "user", content: buildMessageContent(userMessage) });
-
-      // Check if this is a web search request
       const isSearchMode = chatMode === 'search';
+
       const requestBody = isSearchMode 
         ? { webSearch: true, searchQuery: messageToSend }
-        : { messages: chatMessages, personality, mode: chatMode, modePrompt: getModePrompt(chatMode) };
+        : { 
+            messages: messages.filter(m => m.id !== 'welcome').map(m => ({ role: m.type, content: m.content })), 
+            personality, 
+            mode: chatMode, 
+            modePrompt: getModePrompt(chatMode) 
+          };
 
-      // Save search to history if in search mode
       if (isSearchMode && user) {
         saveSearchToHistory(user.id, messageToSend);
       }
 
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
         body: JSON.stringify(requestBody),
         signal: abortControllerRef.current.signal,
       });
 
-      if (!resp.ok) throw new Error((await resp.json()).error || "Failed to get response");
-
-      const reader = resp.body?.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-      const aiMessageId = crypto.randomUUID();
-
-      const upsertAssistant = (nextChunk: string) => {
-        assistantContent += nextChunk;
-        setMessages(prev => {
-          const idx = prev.findIndex(m => m.id === aiMessageId);
-          if (idx !== -1) return prev.map((m, i) => i === idx ? { ...m, content: assistantContent } : m);
-          return [...prev, { id: aiMessageId, type: "ai", content: assistantContent, timestamp: new Date() }];
-        });
-      };
-
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "" || !line.startsWith("data: ")) continue;
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-          try {
-            const content = JSON.parse(jsonStr).choices?.[0]?.delta?.content;
-            if (content) upsertAssistant(content);
-          } catch { textBuffer = line + "\n" + textBuffer; break; }
-        }
+      if (!resp.ok) {
+        const errorBody = await resp.json().catch(() => ({ error: "Failed to get AI response" }));
+        throw new Error(errorBody.error);
       }
 
-      if (assistantContent) {
-        await saveMessage(assistantContent, 'assistant');
+      if (isSearchMode) {
+        const searchResults = await resp.json();
+        let formattedResults = "";
+        if (searchResults.answer_box) {
+          formattedResults += `**Answer:** ${searchResults.answer_box.answer}\n\n`;
+        }
+        if (searchResults.organic_results) {
+          formattedResults += searchResults.organic_results.map((r: any) => `**[${r.title}](${r.link})**\n${r.snippet}`).join('\n\n');
+        }
+        const aiMessage: Message = { id: crypto.randomUUID(), type: "ai", content: formattedResults || "No results found.", timestamp: new Date() };
+        setMessages(prev => [...prev, aiMessage]);
+        await saveMessage(aiMessage.content, 'assistant');
         if (isNewConversation) {
-          generateAndSetConversationTitle(messageToSend, assistantContent);
+          generateAndSetConversationTitle(messageToSend, formattedResults.substring(0, 100));
+        }
+      } else {
+        const reader = resp.body?.getReader();
+        const decoder = new TextDecoder();
+        let textBuffer = "";
+        const aiMessageId = crypto.randomUUID();
+        let assistantContent = "";
+        
+        const upsertAssistant = (chunk: string) => {
+          assistantContent += chunk;
+          setMessages(prev => {
+            const existingMsgIndex = prev.findIndex(m => m.id === aiMessageId);
+            if (existingMsgIndex > -1) {
+              const newMessages = [...prev];
+              newMessages[existingMsgIndex] = { ...newMessages[existingMsgIndex], content: assistantContent };
+              return newMessages;
+            }
+            return [...prev, { id: aiMessageId, type: "ai", content: assistantContent, timestamp: new Date() }];
+          });
+        };
+
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          textBuffer += decoder.decode(value, { stream: true });
+          let newlineIndex;
+          while ((newlineIndex = textBuffer.indexOf('\n')) !== -1) {
+            const line = textBuffer.slice(0, newlineIndex).trim();
+            textBuffer = textBuffer.slice(newlineIndex + 1);
+            if (line.startsWith("data: ")) {
+              const jsonStr = line.slice(6);
+              if (jsonStr === '[DONE]') break;
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (parsed.choices[0].delta.content) {
+                  upsertAssistant(parsed.choices[0].delta.content);
+                }
+              } catch (e) {
+                console.error("Error parsing stream chunk", e);
+              }
+            }
+          }
+        }
+        if(assistantContent) {
+            await saveMessage(assistantContent, 'assistant');
+            if (isNewConversation) {
+              generateAndSetConversationTitle(messageToSend, assistantContent);
+            }
         }
       }
-
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') return;
-      console.error("Chat error:", error);
-      toast({ title: "Error", description: error instanceof Error ? error.message : "Failed to get AI response", variant: "destructive" });
-      setMessages(prev => [...prev, { id: crypto.randomUUID(), type: "ai", content: "Sorry, I encountered an error. Please try again.", timestamp: new Date() }]);
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        setMessages(prev => [...prev, { id: crypto.randomUUID(), type: "ai", content: "Sorry, an error occurred.", timestamp: new Date() }]);
+      }
     } finally {
       setIsLoading(false);
-      abortControllerRef.current = null;
     }
   };
 
@@ -496,7 +507,7 @@ const ChatbotPage = () => {
   // Other handlers
   const stopGeneration = () => { abortControllerRef.current?.abort(); abortControllerRef.current = null; setIsLoading(false); toast({ title: "Generation stopped" }); };
   const handleEditMessage = (index: number, newContent: string) => { if (isLoading) return; setMessages(messages.slice(0, index)); setEditingMessage(null); handleSendMessage(newContent, messages[index].attachment); };
-  const handleRegenerate = (index: number) => { if (isLoading) return; const userMsg = messages[index - 1]; if (userMsg?.type === 'user') { setMessages(messages.slice(0, index)); handleSendMessage(userMsg.content, userMsg.attachment); } };
+  const handleRegenerate = (index: number) => { if (isLoading) return; const userMsg = messages[index - 1]; if (userMsg?.type === 'user') { setMessages(messages.slice(0, index - 1)); handleSendMessage(userMsg.content, userMsg.attachment); } };
   const handleExportChat = () => { if (!checkAccess('chatExport')) return; const content = messages.filter(m => m.id !== 'welcome').map(m => `[${m.type.toUpperCase()}]\n${m.content}`).join('\n\n---\n\n'); const blob = new Blob([content], { type: 'text/markdown' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `chat-${new Date().toISOString().split('T')[0]}.md`; a.click(); toast({ title: "Chat exported" }); };
   const handleManageSubscription = async () => { try { const { data: { session } } = await supabase.auth.getSession(); const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/customer-portal`, { method: 'POST', headers: { Authorization: `Bearer ${session?.access_token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ returnUrl: window.location.href }) }); const { url } = await resp.json(); window.location.href = url; } catch { toast({ title: "Error", description: "Failed to open portal", variant: "destructive" }); } };
   
@@ -512,20 +523,21 @@ const ChatbotPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="flex h-screen w-full">
-        {/* Sidebar */}
         {showSidebar && (
-          <ConversationSidebar
-            conversations={conversations}
-            currentConversationId={currentConversationId}
-            onCreateNew={createNewConversation}
-            onSelect={loadConversation}
-            onDelete={deleteConversation}
-            onClear={clearConversation}
-            onDeleteAll={deleteAllConversations} // Pass the new function
-          />
+          <div className="w-80 flex flex-col border-r bg-background/80 backdrop-blur-sm">
+            <ConversationSidebar
+              conversations={conversations}
+              currentConversationId={currentConversationId}
+              onCreateNew={createNewConversation}
+              onSelect={loadConversation}
+              onDelete={deleteConversation}
+              onClear={clearConversation}
+              onDeleteAll={deleteAllConversations}
+            />
+            {user && chatMode === 'search' && <div className="p-2 border-t"><SearchHistory userId={user.id} /></div>}
+          </div>
         )}
 
-        {/* Main Chat Area */}
         <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-background to-muted/10">
           <AdBanner />
           
@@ -546,13 +558,11 @@ const ChatbotPage = () => {
             dailyChats={dailyChats}
           />
 
-          {/* Special Mode Panels */}
           {chatMode === 'cpf' && <CognitiveLoadPanel onAnalyzeTask={handleAnalyzeTask} isAnalyzing={isAnalyzingTask} />}
           {chatMode === 'ppag' && <PlanetaryActionPanel onGetActions={handleGetEcoActions} isLoading={isLoadingEcoActions} />}
           {chatMode === 'hsca' && <SecurityAuditPanel onAnalyze={handleSecurityAudit} isAnalyzing={isAnalyzingSecurity} />}
           {chatMode === 'uhs' && <UniversalHealthSentinel />}
 
-          {/* Messages */}
           {!isSpecialMode && (
             <ChatMessages
               messages={messages}
@@ -589,7 +599,6 @@ const ChatbotPage = () => {
         </div>
       </div>
 
-      {/* Modals */}
       {codeCanvas && <CodeCanvas code={codeCanvas.code} language={codeCanvas.language} onClose={() => { trackCodeExecution(codeCanvas.language); setCodeCanvas(null); }} />}
       {editingMessage && <EditMessageDialog message={editingMessage.content} onSave={(c) => handleEditMessage(editingMessage.index, c)} onCancel={() => setEditingMessage(null)} />}
       {showAnalytics && <AnalyticsDashboard onClose={() => setShowAnalytics(false)} messageCount={messages.length} conversationCount={conversations.length} />}

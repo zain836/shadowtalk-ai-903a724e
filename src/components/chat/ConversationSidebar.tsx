@@ -28,7 +28,7 @@ export const ConversationSidebar = ({
   onDeleteAll,
 }: ConversationSidebarProps) => {
   return (
-    <div className="w-60 bg-card/50 backdrop-blur-sm border-r border-border flex flex-col">
+    <div className="h-full w-60 bg-card/50 backdrop-blur-sm border-r border-border flex flex-col">
       <div className="p-3 flex items-center gap-2">
         <Button onClick={onCreateNew} className="w-full btn-glow" size="sm">
           <Plus className="h-4 w-4 mr-2" /> New Chat

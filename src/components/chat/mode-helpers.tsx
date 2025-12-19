@@ -1,5 +1,5 @@
 import React from "react";
-import { Code, Languages, FileText, Bug, Lightbulb, MessageSquare, Pen, Music, Brain, Leaf, Shield, HeartPulse } from "lucide-react";
+import { Code, Languages, FileText, Bug, Lightbulb, MessageSquare, Pen, Music, Brain, Leaf, Shield, Search } from "lucide-react";
 
 export type ChatMode =
   | "general"
@@ -11,6 +11,7 @@ export type ChatMode =
   | "explain"
   | "creative"
   | "music"
+  | "search"
   | "cpf"
   | "ppag"
   | "hsca";
@@ -50,6 +51,13 @@ export const modes: { value: ChatMode; label: string; icon: React.ReactNode; pro
     icon: <Bug className="h-4 w-4" />,
     prompt: "You are in debugging mode. Analyze code for bugs, suggest fixes, and explain the issues clearly. Provide corrected code.",
     color: "text-red-500"
+  },
+    {
+    value: "search",
+    label: "Web Search",
+    icon: <Search className="h-4 w-4" />,
+    prompt: "You are in web search mode. I will search the web to answer your questions with the most up-to-date information.",
+    color: "text-purple-500"
   },
   {
     value: "brainstorm",
