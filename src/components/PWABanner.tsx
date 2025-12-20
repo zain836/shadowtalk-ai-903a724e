@@ -13,18 +13,13 @@ const PWABanner = () => {
       setShowBanner(true);
     };
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    // Show banner for iOS users
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-    const isInStandaloneMode = window.matchMedia('(display-mode: standalone)').matches;
-
-    if (isIOS && !isInStandaloneMode) {
-      setTimeout(() => setShowBanner(true), 3000);
-    }
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener(
+        "beforeinstallprompt",
+        handleBeforeInstallPrompt,
+      );
     };
   }, []);
 
@@ -34,7 +29,7 @@ const PWABanner = () => {
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
 
-    if (outcome === 'accepted') {
+    if (outcome === "accepted") {
       setDeferredPrompt(null);
       setShowBanner(false);
     }
@@ -42,10 +37,9 @@ const PWABanner = () => {
 
   const handleClose = () => {
     setShowBanner(false);
-    localStorage.setItem('pwa-banner-dismissed', 'true');
   };
 
-  if (!showBanner || localStorage.getItem('pwa-banner-dismissed')) {
+  if (!showBanner) {
     return null;
   }
 
@@ -57,9 +51,7 @@ const PWABanner = () => {
             <Smartphone className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-sm mb-1">
-              Install Our App
-            </h3>
+            <h3 className="font-semibold text-sm mb-1">Install Our App</h3>
             <p className="text-xs text-muted-foreground mb-3">
               Get instant access, offline mode, and a native app experience
             </p>

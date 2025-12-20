@@ -2,10 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-
+console.log({ RESEND_API_KEY });
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
 interface FeedbackNotificationRequest {
@@ -18,16 +19,21 @@ interface FeedbackNotificationRequest {
 
 const getCategoryLabel = (category: string): string => {
   switch (category) {
-    case 'bug': return '🐛 Bug Report';
-    case 'feature': return '💡 Feature Request';
-    case 'improvement': return '⚡ Improvement Suggestion';
-    case 'other': return '❓ Other';
-    default: return '📝 General Feedback';
+    case "bug":
+      return "🐛 Bug Report";
+    case "feature":
+      return "💡 Feature Request";
+    case "improvement":
+      return "⚡ Improvement Suggestion";
+    case "other":
+      return "❓ Other";
+    default:
+      return "📝 General Feedback";
   }
 };
 
 const getRatingStars = (rating: number): string => {
-  return '⭐'.repeat(rating) + '☆'.repeat(5 - rating);
+  return "⭐".repeat(rating) + "☆".repeat(5 - rating);
 };
 
 const handler = async (req: Request): Promise<Response> => {
@@ -39,8 +45,18 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { feedbackId, category, rating, message, userEmail }: FeedbackNotificationRequest = await req.json();
-    console.log("[FEEDBACK-NOTIFICATION] Received feedback:", { feedbackId, category, rating });
+    const {
+      feedbackId,
+      category,
+      rating,
+      message,
+      userEmail,
+    }: FeedbackNotificationRequest = await req.json();
+    console.log("[FEEDBACK-NOTIFICATION] Received feedback:", {
+      feedbackId,
+      category,
+      rating,
+    });
 
     // For now, send to a default admin email if configured
     // In production, you'd want to fetch admin emails from profiles or a config
@@ -75,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
                 <p style="margin: 0;">${message}</p>
               </div>
               <div class="meta">
-                <p><strong>From:</strong> ${userEmail || 'Anonymous user'}</p>
+                <p><strong>From:</strong> ${userEmail || "Anonymous user"}</p>
                 <p><strong>Feedback ID:</strong> ${feedbackId}</p>
                 <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
               </div>
@@ -104,7 +120,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const emailResult = await emailResponse.json();
-    console.log("[FEEDBACK-NOTIFICATION] Email sent successfully:", emailResult);
+    console.log(
+      "[FEEDBACK-NOTIFICATION] Email sent successfully:",
+      emailResult,
+    );
 
     return new Response(JSON.stringify({ success: true, emailResult }), {
       status: 200,
@@ -117,7 +136,7 @@ const handler = async (req: Request): Promise<Response> => {
       {
         status: 500,
         headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      },
     );
   }
 };

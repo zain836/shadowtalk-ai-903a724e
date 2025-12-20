@@ -81,7 +81,7 @@ const ChatbotPage = () => {
   // Settings
   const [personality, setPersonality] = useState<Personality>("friendly");
   const [chatMode, setChatMode] = useState<ChatMode>("general");
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false);
   
   // Voice state
   const [isListening, setIsListening] = useState(false);
@@ -113,6 +113,7 @@ const ChatbotPage = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const sidebarTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize
   useEffect(() => {
@@ -129,6 +130,23 @@ const ChatbotPage = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (showSidebar) {
+      sidebarTimeoutRef.current = setTimeout(() => {
+        setShowSidebar(false);
+      }, 5000);
+    } else {
+      if (sidebarTimeoutRef.current) {
+        clearTimeout(sidebarTimeoutRef.current);
+      }
+    }
+    return () => {
+      if (sidebarTimeoutRef.current) {
+        clearTimeout(sidebarTimeoutRef.current);
+      }
+    };
+  }, [showSidebar]);
 
   // Conversation Management
   const loadConversations = async () => {
@@ -522,21 +540,19 @@ const ChatbotPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex h-screen w-full">
-        {showSidebar && (
-          <div className="w-80 flex flex-col border-r bg-background/80 backdrop-blur-sm">
-            <ConversationSidebar
-              conversations={conversations}
-              currentConversationId={currentConversationId}
-              onCreateNew={createNewConversation}
-              onSelect={loadConversation}
-              onDelete={deleteConversation}
-              onClear={clearConversation}
-              onDeleteAll={deleteAllConversations}
-            />
-            {user && chatMode === 'search' && <div className="p-2 border-t"><SearchHistory userId={user.id} /></div>}
-          </div>
-        )}
+      <div className="flex h-screen w-full relative">
+        <div className={`absolute top-0 left-0 h-full z-30 bg-background/80 backdrop-blur-sm transition-transform duration-300 ease-in-out ${showSidebar ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 md:w-80 md:flex md:flex-col md:border-r`}>
+          <ConversationSidebar
+            conversations={conversations}
+            currentConversationId={currentConversationId}
+            onCreateNew={createNewConversation}
+            onSelect={loadConversation}
+            onDelete={deleteConversation}
+            onClear={clearConversation}
+            onDeleteAll={deleteAllConversations}
+          />
+          {user && chatMode === 'search' && <div className="p-2 border-t"><SearchHistory userId={user.id} /></div>}
+        </div>
 
         <div className="flex-1 flex flex-col min-w-0 bg-gradient-to-b from-background to-muted/10">
           <AdBanner />
